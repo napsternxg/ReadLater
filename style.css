@@ -1,0 +1,57 @@
+body {
+  font-family: sans-serif;
+  width: 400px;
+}
+#header{
+  word-wrap: break-word;
+  border: solid 1px black;
+  border-radius: 5px;
+  background-color: #ABCDEF;
+  padding: 5px;
+}
+#links-wrap{
+  word-wrap: break-word;
+  border: solid 1px black;
+  border-radius: 5px;
+  background-color: #11CDEF;
+  padding: 5px;
+}
+#addBtn{
+  border: solid 1px black;
+  border-radius: 2px;
+  background-color: #33FF33;
+  padding: 2px;
+  width: 100px;
+  text-align: center;
+  text-transform: capitalize;
+  font-size: 12px;
+  font-weight: bolder;
+  padding: 5px;
+}
+#clearBtn{
+  border: solid 1px black;
+  border-radius: 2px;
+  background-color: #FFCE33;
+  padding: 2px;
+  width: 100px;
+  text-align: center;
+  text-transform: capitalize;
+  font-size: 12px;
+  font-weight: bolder;
+  padding: 5px;
+}
+
+#message{
+  border: solid 1px black;
+  border-radius: 5px;
+  background-color: #EB0F18;
+  padding: 5px;
+  margin-left: 10px;
+  width: 200px;
+  display: inline;
+}
+
+#source{
+  text-align: center;
+  font-weight: bolder;
+}
