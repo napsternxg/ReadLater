@@ -44,7 +44,7 @@ storage.get("links", function(items){
       Create list items and append them to the current list.
       */
       var list = document.createElement("li");
-      list.innerHTML="<a href="+linkList[i].url+">"+linkList[i].title+"</a>";
+      list.innerHTML="<a target='_blank' href='"+linkList[i].url+"'>"+linkList[i].title+"</a>";
       links.appendChild(list);
     };
   }  
@@ -67,7 +67,7 @@ addBtn.addEventListener("click", function(){
       Create list items and append them to the current list.
     */
     var list = document.createElement("li");
-    list.innerHTML = "<a href="+tab.url+">"+tab.title+"</a>";
+    list.innerHTML = "<a target='_blank' href='"+tab.url+"'>"+tab.title+"</a>";
     /**
       Append the current tab details to the sync storage list and update the sync storage.
     */
