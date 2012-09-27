@@ -6,7 +6,7 @@ These links are automatically synced across all the chrome browsers on which the
 The extension uses local storage of the user for storing links.
 
 Author: Shubhanshu Mishra
-Source Code: http://github.com/napsternxg/
+Source Code: https://github.com/napsternxg/ReadLater
 Version: 1.0
 Date Created: 28th September, 2012
 Last Modified: 28th September, 2012
