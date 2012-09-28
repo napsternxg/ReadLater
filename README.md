@@ -1,6 +1,9 @@
 ReadLater 1.0
 ==============
 
+Available on Google Webstore @ https://chrome.google.com/webstore/detail/nplngmgdacdfncdkpdomipkehfnbinfa?hl=en&gl=IN
+------------------------------------------------------------------------
+
 ![In Action](https://github.com/napsternxg/ReadLater/raw/master/Docs/Screenshots/UI_1.0_Pastle.PNG)
 
  * This is a google chrome extension for saving links for later reading.
