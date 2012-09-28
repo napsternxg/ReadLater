@@ -1,4 +1,4 @@
-== ReadLater 1.0 ==
+ReadLater 1.0
 ==============
 
  * This is a google chrome extension for saving links for later reading.
