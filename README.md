@@ -1,7 +1,7 @@
 ReadLater 1.0
 ==============
 
-![In Action](https://github.com/napsternxg/ReadLater/raw/master/Docs/Screenshots/UI_1_0_0.PNG)
+![In Action](https://github.com/napsternxg/ReadLater/raw/master/Docs/Screenshots/UI_1.0_Pastle.PNG)
 
  * This is a google chrome extension for saving links for later reading.
  * All the links are synced across all the google chrome browsers you are logged into.
