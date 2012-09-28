@@ -1,6 +1,8 @@
 ReadLater 1.0
 ==============
 
+![In Action](https://github.com/napsternxg/ReadLater/raw/master/Docs/Screenshots/UI_1_0_0.PNG)
+
  * This is a google chrome extension for saving links for later reading.
  * All the links are synced across all the google chrome browsers you are logged into.
  * Download at: https://github.com/downloads/napsternxg/ReadLater/ReadLater.zip
@@ -8,6 +10,7 @@ ReadLater 1.0
  * FAQ at: http://smexyyweby.wordpress.com/readlater/
 
 Author: Shubhanshu Mishra
+-------------------------
 
 Installation Instructions:
 --------------------------
