@@ -89,11 +89,16 @@ Click Event Listener for the Clear button.
 3. Clear the current list.
 */
 clearBtn.addEventListener("click", function(){
-  storage.remove("links", function(){
+  var confirmVal = confirm("Are you sure you want to delete all links ?");
+  if(confirmVal == true){
+    linkList = [];
+    storage.set({"links": linkList}, function(){
       count = 0;
       message("Cleared!!!");
     });
-  links.innerHTML = "";
+    links.innerHTML = "";
+  }
+
 });
 
 /**
@@ -111,3 +116,15 @@ function message(messageStr) {
 Log to show that the extension is loaded.
 */
 console.log("Extension ReadLater Loaded");
+
+chrome.storage.onChanged.addListener(function(changes, namespace) {
+  for (key in changes) {
+    var storageChange = changes[key];
+    console.log('Storage key "%s" in namespace "%s" changed. ' +
+                'Old value was "%s", new value is "%s".',
+                key,
+                namespace,
+                storageChange.oldValue,
+                storageChange.newValue);
+  }
+});
