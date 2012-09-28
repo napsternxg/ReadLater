@@ -16,6 +16,23 @@ body {
   background-color: #11CDEF;
   padding: 5px;
 }
+
+#links{
+  list-style: none;
+  padding: 0;
+}
+
+.removeBtn{
+  width: 15px;
+  border: solid 1px black;
+  border-radius: 2px;
+  background-color: #FFEB00;
+  margin-right: 10px;
+  font-weight: bolder;
+  padding: 0;
+  text-align: center;
+}
+
 #addBtn{
   border: solid 1px black;
   border-radius: 2px;
@@ -55,3 +72,4 @@ body {
   text-align: center;
   font-weight: bolder;
 }
+

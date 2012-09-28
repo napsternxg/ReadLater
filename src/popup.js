@@ -30,6 +30,55 @@ var storage = chrome.storage.sync;
 var linkList = [];
 var count = 0;
 
+
+/**
+Create the HTML to be stored inside each list item for every link
+*/
+function createLinkHTML(listItem){
+  var linkBtn = document.createElement("input");
+  linkBtn.setAttribute("class", "removeBtn");
+  linkBtn.setAttribute("value", "X");
+  var returnHTML = linkBtn.outerHTML+"<a target='_blank' href='"+listItem.url+"'>"+listItem.title+"</a>";
+
+  return returnHTML;
+}
+
+
+/**
+Get the child number in its parentNode
+*/
+function getChildNumber(node) {
+  return Array.prototype.indexOf.call(node.parentNode.childNodes, node);
+}
+
+
+/**
+Event Function to be called when the user clicks on the remove icon
+*/
+function removeLink(e) {
+  // body...
+  var linkId = e.target; //Get the caller of the click event
+  console.log("Removing link: "+linkId.getAttribute("class"));
+  var parentNode = linkId.parentNode.parentNode; //Get the <ul> list dom element for the current list item
+  if(parentNode){
+    var i = getChildNumber(linkId.parentNode); //Get the id of the <li> item in the given parentNode
+    linkList.splice(i, 1); //Remove the corresponding list entry for the current list item from the linkList array
+    /**
+    Update the sync storage with the newly updated linkList array
+    */
+    storage.set({"links": linkList}, function(){
+      count --; // Reduce Count
+      message("Removed Link!!!");
+    });
+    /**
+    Remove the list item dom element from the UI
+    */
+    parentNode.removeChild(linkId.parentNode);
+    console.log("Removed Child!!!")
+  }  
+}
+
+
 /**
 Populate the extension with the list of currently stored links.
 Initialize the link counter.
@@ -44,8 +93,12 @@ storage.get("links", function(items){
       Create list items and append them to the current list.
       */
       var list = document.createElement("li");
-      list.innerHTML="<a target='_blank' href='"+linkList[i].url+"'>"+linkList[i].title+"</a>";
+      list.innerHTML= createLinkHTML(linkList[i]);
       links.appendChild(list);
+      /**
+      Attach event listeners to the newly created link for the remove button click
+      */
+      list.getElementsByClassName("removeBtn")[0].addEventListener("click", removeLink, false);
     };
   }  
 });
@@ -67,16 +120,24 @@ addBtn.addEventListener("click", function(){
       Create list items and append them to the current list.
     */
     var list = document.createElement("li");
-    list.innerHTML = "<a target='_blank' href='"+tab.url+"'>"+tab.title+"</a>";
+    var newLink = {"title": tab.title, "url": tab.url};
+    list.innerHTML = createLinkHTML(newLink);
     /**
       Append the current tab details to the sync storage list and update the sync storage.
     */
-    linkList.push({"title": tab.title, "url": tab.url});
+    linkList.push(newLink);
 
+    /**
+    Update the sync storage with the list of links containing the newly added link
+    */
     storage.set({"links": linkList}, function(){
       count++;
       message("Saved!!!");
       links.appendChild(list);
+      /**
+      Attach event listeners to the newly created link for the remove button click
+      */
+      list.getElementsByClassName("removeBtn")[0].addEventListener("click", removeLink, false);
     });
   });
 });
@@ -104,12 +165,11 @@ clearBtn.addEventListener("click", function(){
 /**
 Display the message given in messageStr in the message div.
 */
-
 function message(messageStr) {
   msg.innerText = messageStr;
   setTimeout(function() {
     msg.innerText = "Total Links:"+count;
-  }, 3000);
+  }, 1000);
 }
 
 /**
@@ -117,6 +177,9 @@ Log to show that the extension is loaded.
 */
 console.log("Extension ReadLater Loaded");
 
+/**
+Creat a console log everytime the sync storage is changed.
+*/
 chrome.storage.onChanged.addListener(function(changes, namespace) {
   for (key in changes) {
     var storageChange = changes[key];
