@@ -15,7 +15,16 @@ Available on Google Webstore @ https://chrome.google.com/webstore/detail/nplngmg
 Author: Shubhanshu Mishra
 -------------------------
 
-Installation Instructions:
+Change Log:
+-----------
+
+1.0.1
+* Support adding more than 31 links, max limit 512
+* Duplicate links not allowed
+* Data structure for saving links changed. Each link is saved as key value pair in the sync storage as opposed to the earlier version where all links were stored in an array.
+* UI bug regarding Message box changed.  
+
+Installation Instructions for downloading from source:
 --------------------------
 
  1. Download the extension zip file from: https://github.com/downloads/napsternxg/ReadLater/ReadLater.zip

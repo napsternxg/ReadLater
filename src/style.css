@@ -67,6 +67,8 @@ body {
   margin-left: 10px;
   width: 200px;
   display: inline;
+  font-size: 12px;
+  font-weight: bolder;
 }
 
 #source{
