@@ -66,7 +66,9 @@ function removeLink(e) {
     /**
     Update the sync storage with the newly updated linkList array
     */
-    storage.set({"links": linkList}, function(){
+    var key = "link-"+i;
+
+    storage.remove(key, function(){
       count --; // Reduce Count
       message("Removed Link!!!");
     });
@@ -78,30 +80,56 @@ function removeLink(e) {
   }  
 }
 
-
+/**
+Store everything as individual items in sync storage.
+MAX LENGTH = 512
+MAX SPACE IN BYTES = 102, 400
+*/
+storage.get(function(items){
+  message("Loading");
+  count = 0;
+  console.log("Count: "+count);
+  for (key in items) {
+    console.log('Storage key "%s" equals "%s".',
+              key,
+              syncItem);
+    var syncItem = items[key];
+    linkList.push(syncItem);
+    var list = document.createElement("li");
+    list.innerHTML= createLinkHTML(syncItem);
+    links.appendChild(list);
+    //Attach event listeners to the newly created link for the remove button click
+    
+    list.getElementsByClassName("removeBtn")[0].addEventListener("click", removeLink, false);
+    count++;
+  }
+  message("Finished!!!");
+});
 /**
 Populate the extension with the list of currently stored links.
 Initialize the link counter.
 */
+/**
 storage.get("links", function(items){
   if(items.links){
     linkList = items.links;
     count = linkList.length; // Initialize the link counter
     message("Loading");
     for (var i = 0; i < count; i++) {
-      /**
-      Create list items and append them to the current list.
-      */
+      
+      //Create list items and append them to the current list.
+      
       var list = document.createElement("li");
       list.innerHTML= createLinkHTML(linkList[i]);
       links.appendChild(list);
-      /**
-      Attach event listeners to the newly created link for the remove button click
-      */
+      //Attach event listeners to the newly created link for the remove button click
+      
       list.getElementsByClassName("removeBtn")[0].addEventListener("click", removeLink, false);
     };
   }  
 });
+*/
+
 
 /**
 Click Event Listener for the Add button.
@@ -130,7 +158,9 @@ addBtn.addEventListener("click", function(){
     /**
     Update the sync storage with the list of links containing the newly added link
     */
-    storage.set({"links": linkList}, function(){
+    var item = {};
+    item["link-"+count] = newLink;
+    storage.set(item, function(){
       count++;
       message("Saved!!!");
       links.appendChild(list);
@@ -153,7 +183,7 @@ clearBtn.addEventListener("click", function(){
   var confirmVal = confirm("Are you sure you want to delete all links ?");
   if(confirmVal == true){
     linkList = [];
-    storage.set({"links": linkList}, function(){
+    storage.clear(function(){
       count = 0;
       message("Cleared!!!");
     });
