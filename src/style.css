@@ -2,77 +2,112 @@ body {
   font-family: sans-serif;
   width: 400px;
 }
-#header{
-  word-wrap: break-word;
-  border: solid 1px black;
-  border-radius: 5px;
-  background-color: #ABCDEF;
-  padding: 5px;
+#header h1{
+  color: #555;
+  font-size: 32px;
+  text-transform: uppercase;
+  padding: 0;
+  margin: 0;
+  display: block;
+}
+#header span {
+  color: #AAA;
+  font-size: 16px;
+  padding: 0;
+  margin: 0;
+  display: block;
 }
 #links-wrap{
+  width: 100%;
+  -webkit-box-sizing: border-box; /* Safari/Chrome, other WebKit */
+  -moz-box-sizing: border-box;    /* Firefox, other Gecko */
+  box-sizing: border-box;         /* Opera/IE 8+ */
+  font-size: 12px;
   word-wrap: break-word;
-  border: solid 1px black;
-  border-radius: 5px;
-  background-color: #F3EFC3;
-  padding: 5px;
-  font-weight: bolder;
+  border: solid 1px #EEE;
+  padding: 12px;
+  float: left;
+  clear: left;
 }
 
 #links{
   list-style: none;
   padding: 0;
+  margin: 0;
+  float: left;
+  display: block;
 }
-
+#links li {
+  width: 100%;
+  -webkit-box-sizing: border-box; /* Safari/Chrome, other WebKit */
+  -moz-box-sizing: border-box;    /* Firefox, other Gecko */
+  box-sizing: border-box;         /* Opera/IE 8+ */
+  display: block;
+  float: left;
+  margin-top: 4px;
+}
+.removeBtn:before{
+    content:'x';
+}
 .removeBtn{
+  height: 15px;
   width: 15px;
-  border: solid 1px black;
-  border-radius: 2px;
-  background-color: #FFEB00;
+  float: left;
+  background-color: #BA0713;
+  color: #FFF;
   margin-right: 10px;
   font-weight: bolder;
   padding: 0;
   text-align: center;
+  content: '&#215;';
+  cursor: pointer;
 }
 
+#container {
+  float: left;
+  width: 100%;
+}
 #addBtn{
-  border: solid 1px black;
-  border-radius: 2px;
-  background-color: #78B878;
-  padding: 2px;
-  width: 100px;
-  text-align: center;
-  text-transform: capitalize;
+  float: right;
+  text-transform: uppercase;
   font-size: 12px;
-  font-weight: bolder;
-  padding: 5px;
+  margin: 12px 6px;
+  cursor: pointer;
+}
+#addBtn:hover, #clearBtn:hover {
+  color: #259DFF;
+  text-decoration: underline;
 }
 #clearBtn{
-  border: solid 1px black;
-  border-radius: 2px;
-  background-color: #E0C56D;
-  padding: 2px;
-  width: 100px;
-  text-align: center;
-  text-transform: capitalize;
+  float: right;
+  text-transform: uppercase;
   font-size: 12px;
-  font-weight: bolder;
-  padding: 5px;
+  margin: 12px 6px;
+  cursor: pointer;
 }
 
 #message{
-  border: solid 1px black;
-  border-radius: 5px;
-  background-color: #EBA5B3;
-  padding: 5px;
-  margin-left: 10px;
-  width: 200px;
-  display: inline;
+  float: left;
+  margin: 12px 0;
   font-size: 12px;
-  font-weight: bolder;
+  font-weight: bold;
+  padding: 0;
 }
 
 #source{
+  width: 100%;
+  -webkit-box-sizing: border-box; /* Safari/Chrome, other WebKit */
+  -moz-box-sizing: border-box;    /* Firefox, other Gecko */
+  box-sizing: border-box;         /* Opera/IE 8+ */
+  float: left;
+  font-size: 10px;
   text-align: center;
   font-weight: bolder;
+  padding: 4px;
 }
-
+a, a:visited {
+  color: #7B838A;
+}
+a:hover {
+  color: #259DFF;
+}

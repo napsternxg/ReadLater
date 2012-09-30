@@ -35,9 +35,8 @@ var count = 0;
 Create the HTML to be stored inside each list item for every link
 */
 function createLinkHTML(listItem, url){
-  var linkBtn = document.createElement("input");
+  var linkBtn = document.createElement("span");
   linkBtn.setAttribute("class", "removeBtn");
-  linkBtn.setAttribute("value", "X");
   linkBtn.setAttribute("name", url);
   var returnHTML = linkBtn.outerHTML+"<a target='_blank' href='"+url+"'>"+listItem.title+"</a>";
 
