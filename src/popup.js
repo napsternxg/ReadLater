@@ -105,18 +105,40 @@ storage.get(function(items){
   message("Loading");
   count = 0;
   console.log("Count: "+count);
+
+  var syncItems = new Array();
+
   for (key in items) {
     if(key == "count"){
       count = items[key]; // check for count key, and if present get its value
       continue;
     }
     var syncItem = items[key]; // get one item from sync storage
+    syncItem.key = key;
     console.log('Storage key "%s" equals {"%s"}.',
           key,
           syncItem.title
           );
+    console.log('Check key value in syncItem: "%s" - timestamp: %d',
+          syncItem.key,
+          syncItem.timestamp
+          );
+    if (syncItem.title.length > 50)
+      syncItem.title = syncItem.title.substr(0, 50) + "...";
+
+    syncItems.push(syncItem);
+  }
+
+  syncItems.sort(function(a, b){
+    if(a.timestamp < b.timestamp) return -1;
+    if(a.timestamp > b.timestamp) return 1;
+    return 0;
+  });
+  console.log('Element was sorted by timestamp');
+
+  for (var i = 0; i < count; i++) {
     var list = document.createElement("li");
-    list.innerHTML= createLinkHTML(syncItem, key);
+    list.innerHTML= createLinkHTML(syncItems[i], syncItems[i].key);
     links.appendChild(list);
     //Attach event listeners to the newly created link for the remove button click
     
@@ -141,7 +163,10 @@ addBtn.addEventListener("click", function(){
     /**
       Create list items and append them to the current list.
     */
-    var newLink = {"title": tab.title};
+    var newLink = {"title": tab.title, "timestamp": new Date().getTime()};
+    if (newLink.title.length > 50)
+      newLink.title = newLink.title.substr(0, 50) + "...";
+
     storage.get(tab.url, function(items){
       console.log(items);
       /**
