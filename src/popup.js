@@ -38,9 +38,18 @@ function createLinkHTML(listItem, url){
   var linkBtn = document.createElement("span");
   linkBtn.setAttribute("class", "removeBtn");
   linkBtn.setAttribute("name", url);
-  var returnHTML = linkBtn.outerHTML+"<a target='_blank' href='"+url+"'>"+listItem.title+"</a>";
+  var returnHTML = linkBtn.outerHTML+"<a target='_blank' href='"+url+"'>" + getIcon(url) + " " + listItem.title +"</a>";
 
   return returnHTML;
+}
+
+function getIcon(url){
+  var domain = url.replace('http://','').replace('https://','').split(/[/?#]/)[0];
+  var imgUrl = "http://www.google.com/s2/favicons?domain=" + domain;
+
+  var img = document.createElement("img");
+  img.setAttribute('src', imgUrl);
+  return img.outerHTML;
 }
 
 
