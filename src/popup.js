@@ -80,14 +80,14 @@ function removeLink(e) {
     storage.remove(key, function(){
       count --; // Reduce Count
       storage.set({"count": count}); //Update count in the sync storage
-      message("Removed Link!!!");
+      message("Removed Link");
       console.log("Removed Link with key: "+key+"");
     });
     /**
     Remove the list item dom element from the UI
     */
     parentNode.removeChild(linkId.parentNode);
-    console.log("Removed Child!!!")
+    console.log("Removed Child")
   }  
 }
 
@@ -122,7 +122,7 @@ storage.get(function(items){
     
     list.getElementsByClassName("removeBtn")[0].addEventListener("click", removeLink, false);
   }
-  message("Finished!!!");
+  message("Finished!");
 });
 
 /**
@@ -160,7 +160,7 @@ addBtn.addEventListener("click", function(){
         item["count"] = count+1; //increment count in the storage
         storage.set(item, function(){
           count++;
-          message("Saved!!!");
+          message("Saved!");
           links.appendChild(list);
           /**
           Attach event listeners to the newly created link for the remove button click
@@ -190,7 +190,7 @@ clearBtn.addEventListener("click", function(){
   if(confirmVal == true){
     storage.clear(function(){
       count = 0;
-      message("Cleared!!!");
+      message("Cleared!");
     });
     links.innerHTML = "";
   }
