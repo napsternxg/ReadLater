@@ -1,22 +1,19 @@
-ReadLater 1.0
-==============
+ReadLater 1.0.2
+================
 
-Available on Google Webstore @ https://chrome.google.com/webstore/detail/nplngmgdacdfncdkpdomipkehfnbinfa?hl=en&gl=IN
-------------------------------------------------------------------------
+THIS IS A FORK !!!
+-----------------------------
 
-![In Action](https://github.com/napsternxg/ReadLater/raw/master/Docs/Screenshots/UI_1.0_Pastle.PNG)
+See source code at: https://github.com/napsternxg/ReadLater
 
- * This is a google chrome extension for saving links for later reading.
- * All the links are synced across all the google chrome browsers you are logged into.
- * Download at: https://github.com/downloads/napsternxg/ReadLater/ReadLater.zip
- * Source Code at: https://github.com/napsternxg/ReadLater
- * FAQ at: http://smexyyweby.wordpress.com/readlater/
-
-Author: Shubhanshu Mishra
--------------------------
+Original author: Shubhanshu Mishra
 
 Change Log:
 -----------
+
+1.0.2
+* Show icon of link
+* Sort links by adding date
 
 1.0.1
 * Support adding more than 31 links, max limit 512
@@ -36,6 +33,4 @@ Installation Instructions for downloading from source:
  7. Click on it, to see if the popup is coming.
  8. If it is working, yippiee..ki...yay, start adding links and reading more online =)
 
-Do post in your valuable feedback, send a pull request if you have interesting features to add.
-
-Read the blog for updates about the plugin: http://smexyyweby.wordpress.com/readlater/
+See source code at: https://github.com/napsternxg/ReadLater
