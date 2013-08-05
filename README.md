@@ -1,13 +1,6 @@
 ReadLater 1.0.2
 ================
 
-THIS IS A FORK !!!
------------------------------
-
-See source code at: https://github.com/napsternxg/ReadLater
-
-Original author: Shubhanshu Mishra
-
 Change Log:
 -----------
 
