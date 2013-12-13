@@ -1,5 +1,8 @@
 ReadLater 1.0.2
 ================
+
+Download from: https://chrome.google.com/webstore/detail/read-later/nplngmgdacdfncdkpdomipkehfnbinfa
+
 ![Version 2.0.1 Screenshot](http://napsternxg.github.io/ReadLater/images/Screenshot_2_0_1.JPG)
 Change Log:
 -----------
