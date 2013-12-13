@@ -1,15 +1,17 @@
 ReadLater 1.0.2
 ================
 
-Download from: https://chrome.google.com/webstore/detail/read-later/nplngmgdacdfncdkpdomipkehfnbinfa
+[ADD TO CHROME](https://chrome.google.com/webstore/detail/read-later/nplngmgdacdfncdkpdomipkehfnbinfa)
+------------------------------------------------------------------------------------------------------
 
 ![Version 2.0.1 Screenshot](http://napsternxg.github.io/ReadLater/images/Screenshot_2_0_1.JPG)
 Change Log:
 -----------
 
-1.0.2
-* Show icon of link
-* Sort links by adding date
+2.0.1
+* New Slick UI thanks to [Johny Jose](https://github.com/atrniv)
+* Icons and Shorter titles for links thanks to [FrelEsquif](https://github.com/FrelEsquif)
+* Sort links by adding date thanks to [FrelEsquif](https://github.com/FrelEsquif)
 
 1.0.1
 * Support adding more than 31 links, max limit 512
