@@ -1,5 +1,5 @@
-ReadLater 1.0.2
-================
+ReadLater
+=========
 
 [ADD TO CHROME](https://chrome.google.com/webstore/detail/read-later/nplngmgdacdfncdkpdomipkehfnbinfa)
 ------------------------------------------------------------------------------------------------------
