@@ -7,9 +7,9 @@ The extension uses local storage of the user for storing links.
 
 Author: Shubhanshu Mishra
 Source Code: https://github.com/napsternxg/ReadLater
-Version: 1.0.1
+Version: 3.0.1
 Date Created: 28th September, 2012
-Last Modified: 28th September, 2012
+Last Modified: 10th December, 2014
 
 
 */
@@ -68,7 +68,7 @@ function removeLink(e) {
   // body...
   var linkId = e.target; //Get the caller of the click event
   var linkDOMId = linkId.getAttribute("name"); //Get the key for the corresponding link
-  console.log("Removing link: "+ linkDOMId);
+  //console.log("Removing link: "+ linkDOMId);
   var parentNode = linkId.parentNode.parentNode; //Get the <ul> list dom element for the current list item
   if(parentNode){
     var i = getChildNumber(linkId.parentNode); //Get the id of the <li> item in the given parentNode
@@ -78,17 +78,25 @@ function removeLink(e) {
     */
     var key = linkDOMId;
     storage.remove(key, function(){
-      count --; // Reduce Count
+      count--; // Reduce Count
       storage.set({"count": count}); //Update count in the sync storage
       message("Removed Link");
-      console.log("Removed Link with key: "+key+"");
+      //console.log("Removed Link with key: "+key+"");
+	  chrome.browserAction.setBadgeText({"text": badgeText(count)});
     });
     /**
     Remove the list item dom element from the UI
     */
     parentNode.removeChild(linkId.parentNode);
-    console.log("Removed Child")
+    //console.log("Removed Child");
   }  
+}
+
+function badgeText(c){
+	if(c > 999){
+		return c.toString()+"+";
+	}
+	return c.toString();
 }
 
 /**
@@ -115,14 +123,14 @@ storage.get(function(items){
     }
     var syncItem = items[key]; // get one item from sync storage
     syncItem.key = key;
-    console.log('Storage key "%s" equals {"%s"}.',
+    /*console.log('Storage key "%s" equals {"%s"}.',
           key,
           syncItem.title
           );
     console.log('Check key value in syncItem: "%s" - timestamp: %d',
           syncItem.key,
           syncItem.timestamp
-          );
+	);*/
     if (syncItem.title.length > 50)
       syncItem.title = syncItem.title.substr(0, 50) + "...";
 
@@ -134,7 +142,7 @@ storage.get(function(items){
     if(a.timestamp > b.timestamp) return 1;
     return 0;
   });
-  console.log('Element was sorted by timestamp');
+  //console.log('Element was sorted by timestamp');
 
   for (var i = 0; i < count; i++) {
     var list = document.createElement("li");
@@ -145,6 +153,7 @@ storage.get(function(items){
     list.getElementsByClassName("removeBtn")[0].addEventListener("click", removeLink, false);
   }
   message("Finished!");
+  chrome.browserAction.setBadgeText({"text": badgeText(count)});
 });
 
 /**
@@ -168,7 +177,7 @@ addBtn.addEventListener("click", function(){
       newLink.title = newLink.title.substr(0, 50) + "...";
 
     storage.get(tab.url, function(items){
-      console.log(items);
+      //console.log(items);
       /**
         Add the link only if it is not present in the sync storage
       */
@@ -191,6 +200,7 @@ addBtn.addEventListener("click", function(){
           Attach event listeners to the newly created link for the remove button click
           */
           list.getElementsByClassName("removeBtn")[0].addEventListener("click", removeLink, false);
+		  chrome.browserAction.setBadgeText({"text": badgeText(count)});
         });
       }
       /**
@@ -216,6 +226,7 @@ clearBtn.addEventListener("click", function(){
     storage.clear(function(){
       count = 0;
       message("Cleared!");
+	  chrome.browserAction.setBadgeText({"text": badgeText(count)});
     });
     links.innerHTML = "";
   }
@@ -243,11 +254,13 @@ Creat a console log everytime the sync storage is changed.
 chrome.storage.onChanged.addListener(function(changes, namespace) {
   for (key in changes) {
     var storageChange = changes[key];
+	/*
     console.log('Storage key "%s" in namespace "%s" changed. ' +
                 'Old value was "%s", new value is "%s".',
                 key,
                 namespace,
                 storageChange.oldValue,
                 storageChange.newValue);
+				*/
   }
 });
