@@ -168,10 +168,14 @@ addBtn.addEventListener("click", function(){
   /**
     Access the currently selected tab of chrome browser.
   */
-  chrome.tabs.getSelected(null, function(tab){
+  chrome.tabs.query({"active": true, "currentWindow": true}, function(tabs){
     /**
       Create list items and append them to the current list.
     */
+    if (!tabs.length) // Sanity check in case no active tab was found
+      return;
+    var tab = tabs[0];
+
     var newLink = {"title": tab.title, "timestamp": new Date().getTime()};
     if (newLink.title.length > 50)
       newLink.title = newLink.title.substr(0, 50) + "...";
