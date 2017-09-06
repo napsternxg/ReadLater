@@ -82,7 +82,6 @@ function removeLink(e) {
       storage.set({"count": count}); //Update count in the sync storage
       message("Removed Link");
       //console.log("Removed Link with key: "+key+"");
-	  chrome.browserAction.setBadgeText({"text": badgeText(count)});
     });
     /**
     Remove the list item dom element from the UI
@@ -90,13 +89,6 @@ function removeLink(e) {
     parentNode.removeChild(linkId.parentNode);
     //console.log("Removed Child");
   }  
-}
-
-function badgeText(c){
-	if(c > 999){
-		return c.toString()+"+";
-	}
-	return c.toString();
 }
 
 /**
@@ -109,52 +101,58 @@ MAX SPACE IN BYTES = 102, 400
 Populate the extension with the list of currently stored links.
 Initialize the link counter.
 */
-storage.get(function(items){
-  message("Loading");
-  count = 0;
-  console.log("Count: "+count);
+init();
+chrome.storage.onChanged.addListener(init);
 
-  var syncItems = new Array();
+function init() {
+  storage.get(function(items){
+    links.innerHTML = ""; // Clear links if called in an update
 
-  for (key in items) {
-    if(key == "count"){
-      count = items[key]; // check for count key, and if present get its value
-      continue;
+    message("Loading");
+    count = 0;
+    console.log("Count: "+count);
+  
+    var syncItems = new Array();
+  
+    for (key in items) {
+      if(key == "count"){
+        count = items[key]; // check for count key, and if present get its value
+        continue;
+      }
+      var syncItem = items[key]; // get one item from sync storage
+      syncItem.key = key;
+      /*console.log('Storage key "%s" equals {"%s"}.',
+            key,
+            syncItem.title
+            );
+      console.log('Check key value in syncItem: "%s" - timestamp: %d',
+            syncItem.key,
+            syncItem.timestamp
+    );*/
+      if (syncItem.title.length > 50)
+        syncItem.title = syncItem.title.substr(0, 50) + "...";
+  
+      syncItems.push(syncItem);
     }
-    var syncItem = items[key]; // get one item from sync storage
-    syncItem.key = key;
-    /*console.log('Storage key "%s" equals {"%s"}.',
-          key,
-          syncItem.title
-          );
-    console.log('Check key value in syncItem: "%s" - timestamp: %d',
-          syncItem.key,
-          syncItem.timestamp
-	);*/
-    if (syncItem.title.length > 50)
-      syncItem.title = syncItem.title.substr(0, 50) + "...";
-
-    syncItems.push(syncItem);
-  }
-
-  syncItems.sort(function(a, b){
-    if(a.timestamp < b.timestamp) return -1;
-    if(a.timestamp > b.timestamp) return 1;
-    return 0;
+  
+    syncItems.sort(function(a, b){
+      if(a.timestamp < b.timestamp) return -1;
+      if(a.timestamp > b.timestamp) return 1;
+      return 0;
+    });
+    //console.log('Element was sorted by timestamp');
+  
+    for (var i = 0; i < count; i++) {
+      var list = document.createElement("li");
+      list.innerHTML= createLinkHTML(syncItems[i], syncItems[i].key);
+      links.appendChild(list);
+      //Attach event listeners to the newly created link for the remove button click
+      
+      list.getElementsByClassName("removeBtn")[0].addEventListener("click", removeLink, false);
+    }
+    message("Finished!");
   });
-  //console.log('Element was sorted by timestamp');
-
-  for (var i = 0; i < count; i++) {
-    var list = document.createElement("li");
-    list.innerHTML= createLinkHTML(syncItems[i], syncItems[i].key);
-    links.appendChild(list);
-    //Attach event listeners to the newly created link for the remove button click
-    
-    list.getElementsByClassName("removeBtn")[0].addEventListener("click", removeLink, false);
-  }
-  message("Finished!");
-  chrome.browserAction.setBadgeText({"text": badgeText(count)});
-});
+}
 
 /**
 Click Event Listener for the Add button.
@@ -204,7 +202,6 @@ addBtn.addEventListener("click", function(){
           Attach event listeners to the newly created link for the remove button click
           */
           list.getElementsByClassName("removeBtn")[0].addEventListener("click", removeLink, false);
-		  chrome.browserAction.setBadgeText({"text": badgeText(count)});
         });
       }
       /**
@@ -230,11 +227,9 @@ clearBtn.addEventListener("click", function(){
     storage.clear(function(){
       count = 0;
       message("Cleared!");
-	  chrome.browserAction.setBadgeText({"text": badgeText(count)});
     });
     links.innerHTML = "";
   }
-
 });
 
 /**
@@ -251,20 +246,3 @@ function message(messageStr) {
 Log to show that the extension is loaded.
 */
 console.log("Extension ReadLater Loaded");
-
-/**
-Creat a console log everytime the sync storage is changed.
-*/
-chrome.storage.onChanged.addListener(function(changes, namespace) {
-  for (key in changes) {
-    var storageChange = changes[key];
-	/*
-    console.log('Storage key "%s" in namespace "%s" changed. ' +
-                'Old value was "%s", new value is "%s".',
-                key,
-                namespace,
-                storageChange.oldValue,
-                storageChange.newValue);
-				*/
-  }
-});
