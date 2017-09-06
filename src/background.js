@@ -1,16 +1,13 @@
-chrome.runtime.onStartup.addListener(setBadge);
-chrome.runtime.onInstalled.addListener(setBadge);
-chrome.storage.onChanged.addListener(setBadge);
+readLater.setup(null, null, false);
 
-function setBadge() {
-  chrome.storage.sync.get({count: 0}, function({count}) {
-    chrome.browserAction.setBadgeText({"text": badgeText(count)});
-  });
-}
+chrome.runtime.onStartup.addListener(readLater.setBadge);
+chrome.runtime.onInstalled.addListener(readLater.setBadge);
+chrome.storage.onChanged.addListener(readLater.setBadge);
 
-function badgeText(c) {
-	if(c > 999){
-		return c.toString()+"+";
-	}
-	return c.toString();
-}
+chrome.commands.onCommand.addListener(function(command) {
+  console.log('Command:', command);
+  if (command === "add-url") {
+    console.log("Adding URL");
+    readLater.addURL();
+  }
+});

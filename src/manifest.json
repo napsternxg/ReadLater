@@ -7,12 +7,24 @@
     "default_icon": "icon.png",
     "default_popup": "popup.html"
   },
+  "icons": {
+    "48": "icon.png"
+  },
   "background": {
-    "scripts": ["background.js"],
+    "scripts": ["core.js", "background.js"],
     "persistent": false
   },
   "permissions": [
     "storage",
     "activeTab"
-  ]
+  ],
+  "commands": {
+    "add-url": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+L",
+        "mac": "Command+Shift+L"
+      },
+      "description": "Add current page to ReadLater"
+    }
+  }
 }
