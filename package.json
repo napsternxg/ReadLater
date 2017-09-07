@@ -1,0 +1,23 @@
+{
+  "name": "readlater",
+  "version": "4.0.1",
+  "description": "A chrome extension for bookmarking URLs for reading later.",
+  "main": "src/popup.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/napsternxg/ReadLater.git"
+  },
+  "author": "Shubhanshu Mishra",
+  "license": "GPL-2.0",
+  "bugs": {
+    "url": "https://github.com/napsternxg/ReadLater/issues"
+  },
+  "homepage": "https://github.com/napsternxg/ReadLater#readme",
+  "devDependencies": {
+    "eslint": "^4.6.1",
+    "eslint-config-google": "^0.9.1"
+  }
+}
