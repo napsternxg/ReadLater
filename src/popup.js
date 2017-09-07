@@ -21,6 +21,23 @@ var readLaterApp = (function(readLaterObject){
   var clearBtn = document.getElementById("clearBtn");
   var msg = document.getElementById("message");
   var links = document.getElementById("links");
+  var downloadBtn = document.getElementById("downloadAsJSON");
+  var downloadContainer = document.getElementById('downloadContainer');
+
+  var downloadAsJSON = function(){
+    readLaterObject.getValidSyncItems(function(syncItems){
+      console.log("Downloading items");
+      var downloadDataLink = document.createElement("a");
+      var dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(syncItems, 0, 2));
+      downloadDataLink.setAttribute("style", "display: none");
+      downloadDataLink.setAttribute("href", dataStr);
+      downloadDataLink.setAttribute("download", "ReadLater-data.json");
+      
+      downloadContainer.appendChild(downloadDataLink);
+      downloadDataLink.click();
+      downloadDataLink.remove();
+    });
+  };
 
   var getTitle = function(title){
     if (title.length > 50){
@@ -89,6 +106,7 @@ var readLaterApp = (function(readLaterObject){
 
   addBtn.addEventListener("click", addURLFromTab);
   clearBtn.addEventListener("click", clearAll);
+  downloadBtn.addEventListener("click", downloadAsJSON);
 
   var getIcon = function(url) {
     var domain = url.replace('http://', '').replace('https://', '').split(
