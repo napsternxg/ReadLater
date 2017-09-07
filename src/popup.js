@@ -1,16 +1,14 @@
 /**
 
-ReadLater 1.0, a Google Chrome extension which enables a user to save the links for later reading.
+ReadLater, a Google Chrome extension which enables a user to save the links for later reading.
 These links are automatically synced across all the chrome browsers on which the user is logged in.
 
 The extension uses local storage of the user for storing links.
 
 Author: Shubhanshu Mishra
 Source Code: https://github.com/napsternxg/ReadLater
-Version: 3.0.1
 Date Created: 28th September, 2012
-Last Modified: 10th December, 2014
-
+LICENSE: GPL-2.0
 
 */
 /**
@@ -104,31 +102,21 @@ var readLaterApp = (function(readLaterObject){
 
   var createLinkHTML = function(listItem, url) {
     var linkBtn = document.createElement("span");
+    var itemDate = new Date(listItem.timestamp);
+    var title = `${listItem.title}\nAdded on: ${itemDate}`;
     linkBtn.setAttribute("class", "removeBtn");
     linkBtn.setAttribute("name", url);
     var returnHTML = linkBtn.outerHTML + "<a target='_blank' href='" + url +
-      "'>" + getIcon(url) + " " + listItem.title + "</a>";
+      "' title='"+title+"'>" + getIcon(url) + " " + getTitle(listItem.title) + "</a>";
 
     return returnHTML;
   };
 
   var init = function(){
-    readLaterObject.storage.get(function(items){
+    readLaterObject.getValidSyncItems(function(syncItems){
       links.innerHTML = "";
-      message("Loading ...");
-      var syncItems = new Array();
-
-      var counts = 0;
-      for(var key in items){
-        if((typeof key === "string") && (key !== "count")){
-          counts += 1;
-          console.log(key, items[key]);
-          var syncItem = items[key]; // get one item from sync storage
-          syncItem.key = key;
-          syncItem.title = getTitle(syncItem.title);
-          syncItems.push(syncItem);
-        }
-      }
+      var counts = syncItems.length;
+      //console.log(syncItems);
       message(`Loaded ${counts} links.`);
 
       syncItems.sort(function(a, b) {
@@ -138,7 +126,7 @@ var readLaterApp = (function(readLaterObject){
       });
 
       syncItems.forEach(function(syncItem){
-        console.log(syncItem);
+        //console.log(syncItem);
         var listItem = document.createElement("li");
         listItem.innerHTML = createLinkHTML(syncItem, syncItem.key);
         links.appendChild(listItem);
@@ -162,6 +150,7 @@ var readLaterApp = (function(readLaterObject){
 
 
 readLaterApp.init();
+chrome.storage.onChanged.addListener(readLaterApp.init);
 
 /**
 Log to show that the extension is loaded.

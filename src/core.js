@@ -1,4 +1,18 @@
 /**
+
+ReadLater, a Google Chrome extension which enables a user to save the links for later reading.
+These links are automatically synced across all the chrome browsers on which the user is logged in.
+
+The extension uses local storage of the user for storing links.
+
+Author: Shubhanshu Mishra
+Source Code: https://github.com/napsternxg/ReadLater
+Date Created: 28th September, 2012
+LICENSE: GPL-2.0
+
+*/
+
+/**
   Functionality needed:
   - Setup UI
   - Add URL
@@ -53,9 +67,32 @@ var readLater = (function(storageObject){
     return true;
   };
 
+  var getValidSyncItems = function(callback){
+    storage.get(function(items){
+      links.innerHTML = "";
+      var syncItems = new Array();
+
+      for(var key in items){
+        var syncItem = {}; // get one item from sync storage
+        syncItem[key] = items[key];
+        //console.log(key, syncItem);
+        if(isValidSyncItem(syncItem)){
+          //console.log(key, items[key]);
+          syncItem = items[key];
+          syncItem.key = key;
+          syncItems.push(syncItem);
+        }
+      }
+
+      callback(syncItems);
+    });
+
+  };
+
   return {
-    storage: storage,
+    //storage: storage,
     getCountsHandler: getCountsHandler,
+    getValidSyncItems: getValidSyncItems,
 
     setBadge: getCountsHandler(function(counts){
       chrome.browserAction.setBadgeText({
