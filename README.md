@@ -8,6 +8,12 @@ ReadLater
 Change Log:
 -----------
 
+4.03
+* Support for backward compatibility with URLs saved before 2.0.1
+
+4.0.2
+* Fix breaking change in UI about checking valid syncItems. 
+
 4.0.1
 * New API for maitaining the core storage management code with support from [Alexander Kashev](https://github.com/kav2k).
 * Background process to listen to adding new URL's using keyboard shortcuts.
