@@ -8,6 +8,15 @@ ReadLater
 Change Log:
 -----------
 
+4.0.1
+* New API for maitaining the core storage management code with support from [Alexander Kashev](https://github.com/kav2k).
+* Background process to listen to adding new URL's using keyboard shortcuts.
+* Cleaner frontend UI using the core api with support from [Alexander Kashev](https://github.com/kav2k)
+* Export URL's as JSON data.
+
+3.0.1
+* Added badge for the icon to show the link count.
+
 2.0.1
 * New Slick UI thanks to [Johny Jose](https://github.com/atrniv)
 * Icons and Shorter titles for links thanks to [FrelEsquif](https://github.com/FrelEsquif)

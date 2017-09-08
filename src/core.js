@@ -23,23 +23,23 @@ LICENSE: GPL-2.0
   - Listen to changes in sync storage
 **/
 
-var readLater = (function(storageObject){
+let readLater = (function(storageObject) {
 
-  var storage = storageObject;
+  let storage = storageObject;
 
-  var badgeText = function(c) {
+  let badgeText = function(c) {
     if (c > 999) {
-      return c.toString() + "+";
+      return c.toString() + '+';
     }
     return c.toString();
   };
 
-  var getCountsHandler = function(counts_callback){
-    return function(){
-      storage.get(function(items){
-        var counts = 0;
-        for(var key in items){
-          if((typeof key === "string") && (key !== "count")){
+  let getCountsHandler = function(counts_callback) {
+    return function() {
+      storage.get(function(items) {
+        let counts = 0;
+        for (let key in items) {
+          if ((typeof key === 'string') && (key !== 'count')) {
             counts += 1;
           }
         }
@@ -49,35 +49,35 @@ var readLater = (function(storageObject){
   };
 
 
-  var createNewURLItemFromTab = function(tab){
-      var urlData = { "title": tab.title, "timestamp": new Date().getTime() };
-      var urlItem = {'url': tab.url, 'data': urlData};
+  let createNewURLItemFromTab = function(tab) {
+      let urlData = {"title": tab.title, 'timestamp': new Date().getTime()};
+      let urlItem = {'url': tab.url, 'data': urlData};
       return urlItem;
   };
 
-  var isValidSyncItem = function(syncItem){
-    if (Object.keys(syncItem).length != 1){
+  let isValidSyncItem = function(syncItem) {
+    if (Object.keys(syncItem).length != 1) {
       return false;
     }
-    for (var key in syncItem){
-      if (!("title" in syncItem[key]) || !("timestamp" in syncItem[key])){
+    for (let key in syncItem) {
+      if (!('title' in syncItem[key]) || !('timestamp' in syncItem[key])) {
         return false;
       }
     }
     return true;
   };
 
-  var getValidSyncItems = function(callback){
-    storage.get(function(items){
-      links.innerHTML = "";
-      var syncItems = new Array();
+  let getValidSyncItems = function(callback) {
+    storage.get(function(items) {
+      links.innerHTML = '';
+      let syncItems = new Array();
 
-      for(var key in items){
-        var syncItem = {}; // get one item from sync storage
+      for (let key in items) {
+        let syncItem = {}; // get one item from sync storage
         syncItem[key] = items[key];
-        //console.log(key, syncItem);
-        if(isValidSyncItem(syncItem)){
-          //console.log(key, items[key]);
+        // console.log(key, syncItem);
+        if (isValidSyncItem(syncItem)) {
+          // console.log(key, items[key]);
           syncItem = items[key];
           syncItem.key = key;
           syncItems.push(syncItem);
@@ -90,38 +90,38 @@ var readLater = (function(storageObject){
   };
 
   return {
-    //storage: storage,
+    // storage: storage,
     getCountsHandler: getCountsHandler,
     getValidSyncItems: getValidSyncItems,
 
-    setBadge: getCountsHandler(function(counts){
+    setBadge: getCountsHandler(function(counts) {
       chrome.browserAction.setBadgeText({
-        "text": badgeText(counts)
+        'text': badgeText(counts),
       });
     }),
 
-    addURLFromTabHandler: function(success_callback){
-      return function(){
-        chrome.tabs.query({ "active": true, "currentWindow": true }, function(
+    addURLFromTabHandler: function(success_callback) {
+      return function() {
+        chrome.tabs.query({"active": true, 'currentWindow': true}, function(
           tabs) {
 
           if (!tabs.length) // Sanity check in case no active tab was found
-            return;
-          var tab = tabs[0];
+            {return;}
+          let tab = tabs[0];
 
-          var urlItem = createNewURLItemFromTab(tab);
+          let urlItem = createNewURLItemFromTab(tab);
           success_callback(urlItem);
         });
       };
     },
 
-    addURLHandler:  function(success_callback, exists_callback){
-      return function(urlItem){
-        storage.get(urlItem.url, function(urlItemFound){
-          if(isValidSyncItem(urlItemFound)){
+    addURLHandler: function(success_callback, exists_callback) {
+      return function(urlItem) {
+        storage.get(urlItem.url, function(urlItemFound) {
+          if (isValidSyncItem(urlItemFound)) {
             exists_callback(urlItem);
           } else {
-            var syncItem = {};
+            let syncItem = {};
             syncItem[urlItem.url] = urlItem.data;
             storage.set(syncItem, success_callback);
           }
@@ -129,10 +129,10 @@ var readLater = (function(storageObject){
       };
     },
 
-    removeURLHandler: function(success_callback, failed_callback){
-      return function(url){
-        storage.get(url, function(urlItemFound){
-          if(urlItemFound){
+    removeURLHandler: function(success_callback, failed_callback) {
+      return function(url) {
+        storage.get(url, function(urlItemFound) {
+          if (urlItemFound) {
             storage.remove(url, success_callback);
           } else {
             failed_callback(url);
@@ -141,10 +141,10 @@ var readLater = (function(storageObject){
       };
     },
 
-    clearAllHandler: function(success_callback){
-      return function(){
-        var confirmVal = confirm("Are you sure you want to delete all links?");
-        if(confirmVal === true){
+    clearAllHandler: function(success_callback) {
+      return function() {
+        let confirmVal = confirm('Are you sure you want to delete all links?');
+        if (confirmVal === true) {
           storage.clear(success_callback);
         }
       };
