@@ -1,3 +1,16 @@
+<!--
+
+ReadLater, a Google Chrome extension which enables a user to save the links for later reading.
+These links are automatically synced across all the chrome browsers on which the user is logged in.
+
+The extension uses local storage of the user for storing links.
+
+Author: Shubhanshu Mishra
+Source Code: https://github.com/napsternxg/ReadLater
+Date Created: 28th September, 2012
+LICENSE: GPL-2.0
+
+-->
 <!doctype html>
 <html>
   <head>
@@ -16,8 +29,14 @@
     <div id="links-wrap">
       <ul id="links"></ul>
     </div>
-    <div id="source">View Source at: <a target="_blank" href="https://github.com/napsternxg/ReadLater">Github</a> | 
-      <a target="_blank" href="http://smexyyweby.wordpress.com/readlater/">FAQ</a></div>
+    <div id="downloadContainer">
+    </div>
+    <div id="source">
+      <a target="_blank" href="https://github.com/napsternxg/ReadLater" title="View source code">Github</a> | 
+      <a target="_blank" href="http://smexyyweby.wordpress.com/readlater/" title="View frequently asked questions">FAQ</a> | 
+      <a id="downloadAsJSON" title="Click to download all the stored links as a JSON file">Download as JSON</a>
+    </div>
+    <script src="core.js"></script>
     <script src="popup.js"></script>
   </body>
 </html>
