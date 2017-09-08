@@ -63,7 +63,12 @@ let readLater = (function(storageObject) {
       if(typeof syncItem[key] !== "object"){
         return false;
       }
-      if (!('title' in syncItem[key]) || !('timestamp' in syncItem[key])) {
+      if (!('title' in syncItem[key])) {
+        /**
+         !('timestamp' in syncItem[key]) - this is an optional check
+         TODO (shubhanshu): force all items to have timestamp in future. 
+         Keeping it for backward compatibility.
+        **/
         return false;
       }
     }
