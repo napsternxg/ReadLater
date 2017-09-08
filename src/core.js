@@ -60,7 +60,7 @@ let readLater = (function(storageObject) {
       return false;
     }
     for (let key in syncItem) {
-      if (!('title' in syncItem[key]) || !('timestamp' in syncItem[key])) {
+      if (typeof syncItem[key].title === "undefined" || typeof syncItem[key] === "undefined") {
         return false;
       }
     }
