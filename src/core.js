@@ -31,7 +31,7 @@ let readLater = (function(storageObject) {
 
   let badgeText = function(c) {
     if (c > MAX_BUTTON_ITEMS) {
-      return MAX_BUTTON_ITEMS.toString() + '+';
+      return `${MAX_BUTTON_ITEMS}+`;
     }
     return c.toString();
   };
