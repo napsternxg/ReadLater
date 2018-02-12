@@ -23,13 +23,15 @@ LICENSE: GPL-2.0
   - Listen to changes in sync storage
 **/
 
+const MAX_BUTTON_ITEMS = 999;
+
 let readLater = (function(storageObject) {
 
   let storage = storageObject;
 
   let badgeText = function(c) {
-    if (c > 999) {
-      return c.toString() + '+';
+    if (c > MAX_BUTTON_ITEMS) {
+      return MAX_BUTTON_ITEMS.toString() + '+';
     }
     return c.toString();
   };
