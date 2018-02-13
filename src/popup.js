@@ -47,7 +47,7 @@ var readLaterApp = (function(readLaterObject){
   };
 
   var show_total_links = readLaterObject.getCountsHandler(function(counts){
-    msg.innerText = `Total Links:${counts}`;
+    msg.innerText = `Total Links: ${counts}`;
   });
 
   var message = function(messageStr) {
