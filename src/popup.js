@@ -79,7 +79,7 @@ var readLaterApp = (function(readLaterObject){
     init();
   };
 
-  var addURL = readLaterObject.addURLHandler(add_success, add_exists);
+  var addURL = readLaterObject.toggleURLHandler(add_success, add_exists);
   var removeURL = readLaterObject.removeURLHandler(remove_success, remove_failed);
 
   var removeAction = function(e){
@@ -102,7 +102,7 @@ var readLaterApp = (function(readLaterObject){
   };
 
   var clearAll = readLaterObject.clearAllHandler(clear_all_success);
-  var addURLFromTab = readLaterObject.addURLFromTabHandler(addURL);
+  var addURLFromTab = readLaterObject.toggleURLFromTabHandler(addURL);
 
   addBtn.addEventListener("click", addURLFromTab);
   clearBtn.addEventListener("click", clearAll);

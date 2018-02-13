@@ -16,15 +16,16 @@
   },
   "permissions": [
     "storage",
-    "activeTab"
+    "activeTab",
+    "notifications"
   ],
   "commands": {
-    "add-url": {
+    "toggle-url": {
       "suggested_key": {
         "default": "Ctrl+Shift+L",
         "mac": "Command+Shift+L"
       },
-      "description": "Add current page to ReadLater"
+      "description": "Add/remove current page"
     }
   }
 }

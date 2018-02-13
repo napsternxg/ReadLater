@@ -49,10 +49,14 @@ let readLater = (function(storageObject) {
   };
 
 
-  let createNewURLItemFromTab = function(tab) {
-      let urlData = {"title": tab.title, 'timestamp': new Date().getTime()};
-      let urlItem = {'url': tab.url, 'data': urlData};
-      return urlItem;
+  let createURLItemFromTab = function(tab) {
+      return {
+        'url': tab.url,
+        'data': {
+          "title": tab.title, 
+          'timestamp': new Date().getTime()
+        }
+      };
   };
 
   let isValidSyncItem = function(syncItem) {
@@ -108,22 +112,20 @@ let readLater = (function(storageObject) {
       });
     }),
 
-    addURLFromTabHandler: function(success_callback) {
+    toggleURLFromTabHandler: function(tabFound_callback) {
       return function() {
-        chrome.tabs.query({"active": true, 'currentWindow': true}, function(
-          tabs) {
-
+        chrome.tabs.query({"active": true, 'currentWindow': true}, function(tabs) {
           if (!tabs.length) // Sanity check in case no active tab was found
             {return;}
           let tab = tabs[0];
 
-          let urlItem = createNewURLItemFromTab(tab);
-          success_callback(urlItem);
+          let urlItem = createURLItemFromTab(tab);
+          tabFound_callback(urlItem);
         });
       };
     },
 
-    addURLHandler: function(success_callback, exists_callback) {
+    toggleURLHandler: function(success_callback, exists_callback) {
       return function(urlItem) {
         storage.get(urlItem.url, function(urlItemFound) {
           if (isValidSyncItem(urlItemFound)) {
@@ -131,7 +133,7 @@ let readLater = (function(storageObject) {
           } else {
             let syncItem = {};
             syncItem[urlItem.url] = urlItem.data;
-            storage.set(syncItem, success_callback);
+            storage.set(syncItem, success_callback(urlItem));
           }
         });
       };
@@ -141,7 +143,7 @@ let readLater = (function(storageObject) {
       return function(url) {
         storage.get(url, function(urlItemFound) {
           if (urlItemFound) {
-            storage.remove(url, success_callback);
+            storage.remove(url, success_callback(urlItemFound[url]));
           } else {
             failed_callback(url);
           }

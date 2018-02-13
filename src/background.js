@@ -15,41 +15,57 @@ LICENSE: GPL-2.0
 var readLaterObject = readLater(chrome.storage.sync);
 
 var readLaterApp = (function(){
-	var add_success = function(){
-		console.log(`URL Item successfully added.`);
-	};
 
-	var add_exists = function(urlItem){
-		var urlJSON = JSON.stringify(urlItem);
-		console.log(`Add failed. URLItem ${urlJSON} already exists.`);
-	};
-
-	var remove_success = function(){
+	var remove_success = function(removedItem) {
+		chrome.notifications.create('RemovedFromBackground', {
+			type: "basic",
+			title: "Page Removed",
+			message: removedItem.title,
+			iconUrl: "icon.png"
+		});
 		console.log(`URL successfully removed.`);
 	};
 
 	var remove_failed = function(url){
 		console.log(`Remove failed. URL ${url} does not exist.`);
 	};
+	
+	let removeUrlHandler = readLaterObject.removeURLHandler(remove_success, remove_failed)
+
+	var add_success = function(addedItem) {
+		chrome.notifications.create('AddedFromBackground', {
+			type: "basic",
+			title: "Page Added",
+			message: addedItem.data.title,
+			iconUrl: "icon.png"
+		});
+		console.log(`URL Item successfully added.`);
+	};
+
+	var add_exists = function(urlItem) {
+		// Tried to add but it exists --- then remove
+		console.log("The current page is already present -- trying to remove...")
+		removeUrlHandler(urlItem.url);
+	};
 
 	var clear_all_success = function(){
 		console.log("Cleared all URLs.");
 	};
 
-	var addURL = readLaterObject.addURLHandler(add_success, add_exists);
+	var toggleURLHandler = readLaterObject.toggleURLHandler(add_success, add_exists);
 	return {
-		removeURL: readLaterObject.removeURLHandler(remove_success, remove_failed),
+		removeURL: removeUrlHandler,
 		clearAll: readLaterObject.clearAllHandler(clear_all_success),
-		addURLFromTab: readLaterObject.addURLFromTabHandler(addURL)
+		toggleURLFromTab: readLaterObject.toggleURLFromTabHandler(toggleURLHandler)
 	}
 })();
 
 
 chrome.commands.onCommand.addListener(function(command) {
   console.log('Command:', command);
-  if (command === "add-url") {
+  if (command === "toggle-url") {
     console.log("Adding URL");
-    readLaterApp.addURLFromTab();
+    readLaterApp.toggleURLFromTab();
   }
 });
 
