@@ -12,17 +12,27 @@ LICENSE: GPL-2.0
 
 */
 
+const NOTIFICATION_AUTOHIDE_DELAY = 700;
+
 var readLaterObject = readLater(chrome.storage.sync);
 
-var readLaterApp = (function(){
+var readLaterApp = (function() {
+
+	function displayNotification(id, title, message) {
+		chrome.notifications.create(id, {
+			type: "basic",
+			title: title,
+			message: message,
+			iconUrl: "icon.png"
+		}, function(id) {
+			setTimeout(function() {
+				chrome.notifications.clear(id);
+			}, NOTIFICATION_AUTOHIDE_DELAY);
+		});
+	}
 
 	var remove_success = function(removedItem) {
-		chrome.notifications.create('RemovedFromBackground', {
-			type: "basic",
-			title: "Page Removed",
-			message: removedItem.title,
-			iconUrl: "icon.png"
-		});
+		displayNotification('RemovedFromBackground', "Page Removed", removedItem.title);		
 		console.log(`URL successfully removed.`);
 	};
 
@@ -33,12 +43,7 @@ var readLaterApp = (function(){
 	let removeUrlHandler = readLaterObject.removeURLHandler(remove_success, remove_failed)
 
 	var add_success = function(addedItem) {
-		chrome.notifications.create('AddedFromBackground', {
-			type: "basic",
-			title: "Page Added",
-			message: addedItem.data.title,
-			iconUrl: "icon.png"
-		});
+		displayNotification('AddedFromBackground', "Page Added", addedItem.data.title);		
 		console.log(`URL Item successfully added.`);
 	};
 
