@@ -17,7 +17,7 @@ Create variables for the DOM elements.
 var readLaterObject = readLater(chrome.storage.sync);
 
 var readLaterApp = (function(readLaterObject){
-  var addBtn = document.getElementById("addBtn");
+  var toggleBtn = document.getElementById("toggleBtn");
   var clearBtn = document.getElementById("clearBtn");
   var msg = document.getElementById("message");
   var links = document.getElementById("links");
@@ -61,8 +61,8 @@ var readLaterApp = (function(readLaterObject){
   };
 
   var add_exists = function(urlItem){
-    console.log(`Add failed. URLItem ${urlItem} already exists.`);
-    message("URL exists.");
+    removeURL(urlItem.url);
+    message("URL removed.");
   };
 
   var remove_success = function(){
@@ -79,7 +79,7 @@ var readLaterApp = (function(readLaterObject){
     init();
   };
 
-  var addURL = readLaterObject.toggleURLHandler(add_success, add_exists);
+  var toggleURLHandler = readLaterObject.toggleURLHandler(add_success, add_exists);
   var removeURL = readLaterObject.removeURLHandler(remove_success, remove_failed);
 
   var removeAction = function(e){
@@ -102,9 +102,9 @@ var readLaterApp = (function(readLaterObject){
   };
 
   var clearAll = readLaterObject.clearAllHandler(clear_all_success);
-  var addURLFromTab = readLaterObject.toggleURLFromTabHandler(addURL);
+  var toggleURLFromTabHandler = readLaterObject.toggleURLFromTabHandler(toggleURLHandler);
 
-  addBtn.addEventListener("click", addURLFromTab);
+  toggleBtn.addEventListener("click", toggleURLFromTabHandler);
   clearBtn.addEventListener("click", clearAll);
   downloadBtn.addEventListener("click", downloadAsJSON);
 
@@ -143,19 +143,31 @@ var readLaterApp = (function(readLaterObject){
         return 0;
       });
 
+      let knownUrls = {};
+
       syncItems.forEach(function(syncItem){
         //console.log(syncItem);
         var listItem = document.createElement("li");
-        listItem.innerHTML = createLinkHTML(syncItem, syncItem.key);
+        let url = syncItem.key;
+        listItem.innerHTML = createLinkHTML(syncItem, url);
         links.appendChild(listItem);
-        //Attach event listeners to the newly created link for the remove button click
 
+        //Attach event listeners to the newly created link for the remove button click
+        
         listItem.getElementsByClassName("removeBtn")[0].addEventListener(
           "click", removeAction, false);
+          
+        knownUrls[url] = true;
 
       });
-      message("Finished!");
 
+      // Update the caption of the toggle button according to whether the current tab
+      // is in the URL list.
+      getCurrentTab().then(tab => {
+        toggleBtn.innerText = knownUrls[tab.url] ? "REMOVE" : "ADD";
+      });
+
+      message("Finished!");
     });
 
   };
@@ -170,7 +182,7 @@ var readLaterApp = (function(readLaterObject){
 readLaterApp.init();
 chrome.storage.onChanged.addListener(readLaterApp.init);
 
-/**
-Log to show that the extension is loaded.
-*/
+/** 
+ * Log to show that the extension is loaded. 
+ */
 console.log("Extension ReadLater Loaded");

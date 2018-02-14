@@ -158,8 +158,29 @@ let readLater = (function(storageObject) {
           storage.clear(success_callback);
         }
       };
-    },
+    }
+
   };
   
 });
 
+
+/**
+ * Returns a promise for the currently active tab in Chrome.
+ */
+function getCurrentTab() {
+
+  return new Promise((resolve, reject) => {
+    chrome.tabs.query({
+      active: true, 
+      currentWindow: true
+    }, tabs => {
+      if (tabs.length) {
+        resolve(tabs[0]);
+      } else {
+        reject();
+      }
+    });
+  });
+  
+}

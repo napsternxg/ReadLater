@@ -73,14 +73,14 @@ body {
   float: left;
   width: 100%;
 }
-#addBtn{
+#toggleBtn {
   float: right;
   text-transform: uppercase;
   font-size: 12px;
   margin: 12px 6px;
   cursor: pointer;
 }
-#addBtn:hover, #clearBtn:hover {
+#toggleBtn:hover, #clearBtn:hover {
   color: #259DFF;
   text-decoration: underline;
 }
