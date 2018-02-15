@@ -114,11 +114,7 @@ let readLater = (function(storageObject) {
 
     toggleURLFromTabHandler: function(tabFound_callback) {
       return function() {
-        chrome.tabs.query({"active": true, 'currentWindow': true}, function(tabs) {
-          if (!tabs.length) // Sanity check in case no active tab was found
-            {return;}
-          let tab = tabs[0];
-
+        getCurrentTab().then(tab => {
           let urlItem = createURLItemFromTab(tab);
           tabFound_callback(urlItem);
         });

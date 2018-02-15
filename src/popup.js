@@ -16,6 +16,18 @@ Create variables for the DOM elements.
 */
 var readLaterObject = readLater(chrome.storage.sync);
 
+
+const TOKENS = {
+  addToList: {
+    text: "ADD",
+    title: "Add the currently opened URL to the list"
+  },
+  removeFromList: {
+    text: "REMOVE",
+    title: "Remove the currently opened URL from the list"
+  }
+};
+
 var readLaterApp = (function(readLaterObject){
   var toggleBtn = document.getElementById("toggleBtn");
   var clearBtn = document.getElementById("clearBtn");
@@ -46,13 +58,13 @@ var readLaterApp = (function(readLaterObject){
     return title;
   };
 
-  var show_total_links = readLaterObject.getCountsHandler(function(counts){
+  var showTotalLinks = readLaterObject.getCountsHandler(function(counts){
     msg.innerText = `Total Links: ${counts}`;
   });
 
   var message = function(messageStr) {
     msg.innerText = messageStr;
-    setTimeout(show_total_links, 1000);
+    setTimeout(showTotalLinks, 1000);
   };
 
   var add_success = function(){
@@ -62,7 +74,6 @@ var readLaterApp = (function(readLaterObject){
 
   var add_exists = function(urlItem){
     removeURL(urlItem.url);
-    message("URL removed.");
   };
 
   var remove_success = function(){
@@ -135,7 +146,7 @@ var readLaterApp = (function(readLaterObject){
       links.innerHTML = "";
       var counts = syncItems.length;
       //console.log(syncItems);
-      message(`Loaded ${counts} links.`);
+      showTotalLinks();
 
       syncItems.sort(function(a, b) {
         if (a.timestamp < b.timestamp) return -1;
@@ -161,13 +172,14 @@ var readLaterApp = (function(readLaterObject){
 
       });
 
-      // Update the caption of the toggle button according to whether the current tab
+      // Update the caption and title of the toggle button according to whether the current tab
       // is in the URL list.
       getCurrentTab().then(tab => {
-        toggleBtn.innerText = knownUrls[tab.url] ? "REMOVE" : "ADD";
+        let buttonTokens = knownUrls[tab.url] ? TOKENS.removeFromList : TOKENS.addToList;
+        toggleBtn.innerText = buttonTokens.text;
+        toggleBtn.title = buttonTokens.title;
       });
 
-      message("Finished!");
     });
 
   };
