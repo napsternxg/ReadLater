@@ -31,7 +31,6 @@ body {
 }
 
 #downloadAsJSON{
-  text-decoration: underline;
   cursor: pointer;
   cursor: hand;
 }
@@ -55,6 +54,12 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+a:link {
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
 }
 .removeBtn:before{
     content:'x';
