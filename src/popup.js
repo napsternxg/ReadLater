@@ -40,9 +40,6 @@ var readLaterApp = (function(readLaterObject){
   };
 
   var getTitle = function(title){
-    if (title.length > 50){
-      title = title.substr(0, 50) + "...";
-    }
     return title;
   };
 
