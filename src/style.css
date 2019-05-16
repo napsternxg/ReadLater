@@ -62,6 +62,7 @@ body {
 .removeBtn{
   height: 15px;
   width: 15px;
+  line-height: 15px;
   float: left;
   background-color: #BA0713;
   color: #FFF;
