@@ -31,7 +31,6 @@ body {
 }
 
 #downloadAsJSON{
-  text-decoration: underline;
   cursor: pointer;
   cursor: hand;
 }
@@ -40,6 +39,7 @@ body {
   list-style: none;
   padding: 0;
   margin: 0;
+  width: 100%;
   float: left;
   display: block;
 }
@@ -51,6 +51,15 @@ body {
   display: block;
   float: left;
   margin-top: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+a:link {
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
 }
 .removeBtn:before{
     content:'x';
@@ -58,6 +67,7 @@ body {
 .removeBtn{
   height: 15px;
   width: 15px;
+  line-height: 15px;
   float: left;
   background-color: #BA0713;
   color: #FFF;
