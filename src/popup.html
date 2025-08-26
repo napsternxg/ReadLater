@@ -13,30 +13,39 @@ LICENSE: GPL-2.0
 -->
 <!doctype html>
 <html>
-  <head>
-    <title>ReadLater</title>
-    <link rel="stylesheet" type="text/css" href="style.css" />
-  </head>
-  <body>
-    <div id="header"><h1>ReadLater</h1><span>Save now, Read Later</span></div>
-    <!--<div id="currentLink"></div>-->
-    <div id="container">
-      <span id="addBtn">ADD</span>
-      <span id="clearBtn">CLEAR ALL</span>
-      <div id="message">Total Links: </div>
-    </div>
-    
-    <div id="links-wrap">
-      <ul id="links"></ul>
-    </div>
-    <div id="downloadContainer">
-    </div>
-    <div id="source">
-      <a target="_blank" href="https://github.com/napsternxg/ReadLater" title="View source code">Github</a> | 
-      <a target="_blank" href="http://smexyyweby.wordpress.com/readlater/" title="View frequently asked questions">FAQ</a> | 
-      <a id="downloadAsJSON" title="Click to download all the stored links as a JSON file">Download as JSON</a>
-    </div>
-    <script src="core.js"></script>
-    <script src="popup.js"></script>
-  </body>
+
+<head>
+  <title>ReadLater</title>
+  <link rel="stylesheet" type="text/css" href="style.css" />
+</head>
+
+<body>
+  <div id="header">
+    <h1>ReadLater</h1><span>Save now, Read Later</span>
+  </div>
+  <!--<div id="currentLink"></div>-->
+  <div id="container">
+    <span id="addBtn">ADD</span>
+    <span id="clearBtn">CLEAR ALL</span>
+    <div id="message">Total Links: </div>
+  </div>
+
+  <div id="links-wrap">
+    <ul id="links"></ul>
+  </div>
+  <div id="downloadContainer">
+  </div>
+  <div id="source">
+    <a target="_blank" href="https://github.com/napsternxg/ReadLater" title="View source code">Github</a> |
+    <a target="_blank" href="http://smexyyweby.wordpress.com/readlater/" title="View frequently asked questions">FAQ</a>
+    |
+    <a id="downloadAsJSON" title="Click to download all the stored links as a JSON file">Download as JSON</a>
+    |
+    <!-- Added Options link; click handled in popup.js -->
+    <a id="optionsLink" href="#" title="Open options page">Search</a>
+  </div>
+  <script src="core.js"></script>
+  <script src="popup.js"></script>
+</body>
+
 </html>

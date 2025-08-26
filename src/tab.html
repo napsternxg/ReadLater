@@ -1,0 +1,65 @@
+<!doctype html>
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <title>ReadLater — All Links</title>
+    <link rel="stylesheet" href="tab.css" />
+</head>
+
+<body>
+    <header>
+        <h1>ReadLater — Saved Links</h1>
+        <div class="controls">
+            <input id="searchInput" type="search" placeholder="Search by title or URL..." />
+            <button id="refreshBtn" title="Refresh list">Refresh</button>
+            <button id="downloadBtn" title="Download JSON">Download JSON</button>
+        </div>
+    </header>
+
+    <!-- options meta: profile and configured max badge count -->
+    <div id="optionsMeta" aria-hidden="false">
+        Profile: <span id="userProfile">Checking...</span>
+        <button id="enableSyncBtn" class="mini-cta hidden" title="Open Chrome sign-in / sync settings">Enable
+            Sync</button>
+        &middot; Max badge count: <span id="maxItems">...</span>
+    </div>
+
+    <!-- Permissions: show declared and granted permissions with friendly descriptions -->
+    <section id="permissions" aria-label="Extension permissions">
+        <details>
+            <summary>
+                Permissions
+            </summary>
+            <p class="muted">The list below explains what the extension can access and which permissions are currently
+                granted.</p>
+            <ul id="permList" class="perm-list">
+                <!-- populated by tab.js -->
+            </ul>
+        </details>
+    </section>
+
+    <main>
+        <table id="linksTable" aria-label="Saved links">
+            <thead>
+                <tr>
+                    <th>Fav</th>
+                    <th>Title</th>
+                    <th>URL</th>
+                    <th>Added</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- rows inserted by tab.js -->
+            </tbody>
+        </table>
+
+        <div id="emptyState" class="hidden">No links saved.</div>
+    </main>
+
+    <script src="core.js"></script>
+    <script src="tab.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,192 @@
+body {
+    font-family: sans-serif;
+    margin: 16px;
+    color: #222;
+}
+
+header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+}
+
+header h1 {
+    margin: 0;
+    font-size: 20px;
+    color: #333;
+}
+
+.controls {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+#searchInput {
+    padding: 6px 8px;
+    width: 360px;
+    max-width: 50vw;
+    box-sizing: border-box;
+}
+
+button {
+    padding: 6px 10px;
+    cursor: pointer;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 8px;
+}
+
+th,
+td {
+    text-align: left;
+    padding: 8px;
+    border-bottom: 1px solid #e6e6e6;
+    vertical-align: middle;
+    font-size: 14px;
+}
+
+th {
+    background: #fafafa;
+    font-weight: 600;
+}
+
+td a {
+    color: #0a66c2;
+    text-decoration: none;
+}
+
+td a:hover {
+    text-decoration: underline;
+}
+
+.favicon {
+    width: 16px;
+    height: 16px;
+    display: inline-block;
+    vertical-align: middle;
+}
+
+.action-btn {
+    padding: 4px 8px;
+    border: none;
+    background: #d9534f;
+    color: #fff;
+    border-radius: 3px;
+    cursor: pointer;
+}
+
+.action-btn:hover {
+    opacity: 0.9;
+}
+
+.hidden {
+    display: none;
+}
+
+#emptyState {
+    margin-top: 16px;
+    color: #666;
+    font-style: italic;
+}
+
+@media (max-width: 600px) {
+    #searchInput {
+        width: 140px;
+    }
+
+    th,
+    td {
+        font-size: 12px;
+        padding: 6px;
+    }
+}
+
+/* small status bar under header to highlight signed-in user and max count */
+#optionsMeta {
+    margin-bottom: 10px;
+    padding: 8px 10px;
+    background: #f0f8ff;
+    border-radius: 4px;
+    font-size: 13px;
+    color: #222;
+}
+
+#optionsMeta span {
+    font-weight: 600;
+}
+
+/* small CTA button next to profile */
+.mini-cta {
+    margin-left: 8px;
+    padding: 4px 8px;
+    font-size: 12px;
+    background: #259DFF;
+    color: #fff;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+}
+
+.mini-cta:hover {
+    opacity: 0.9;
+}
+
+/* Permissions section */
+#permissions {
+    margin-bottom: 12px;
+    padding: 10px;
+    background: #fff;
+    border: 1px solid #eef5ff;
+    border-radius: 6px;
+}
+
+#permissions h2 {
+    margin: 0 0 6px 0;
+    font-size: 15px;
+}
+
+.muted {
+    margin: 0 0 8px 0;
+    color: #666;
+    font-size: 13px;
+}
+
+.perm-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.perm-item {
+    padding: 8px;
+    border-radius: 4px;
+    margin-bottom: 6px;
+    background: #fafcff;
+}
+
+.perm-item.not-granted {
+    opacity: 0.85;
+}
+
+.perm-item .perm-desc {
+    color: #444;
+    font-size: 13px;
+    margin-top: 4px;
+}
+
+.perm-item .perm-status {
+    margin-top: 6px;
+    font-size: 12px;
+    color: #888;
+}
+
+.perm-type {
+    font-size: 12px;
+    color: #666;
+    margin-left: 6px;
+}

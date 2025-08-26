@@ -12,27 +12,30 @@ LICENSE: GPL-2.0
 
 */
 
+// Import shared helper into the service worker context
+importScripts('core.js');
+
 var readLaterObject = readLater(chrome.storage.sync);
 
-var readLaterApp = (function(){
-	var add_success = function(){
+var readLaterApp = (function () {
+	var add_success = function () {
 		console.log(`URL Item successfully added.`);
 	};
 
-	var add_exists = function(urlItem){
+	var add_exists = function (urlItem) {
 		var urlJSON = JSON.stringify(urlItem);
 		console.log(`Add failed. URLItem ${urlJSON} already exists.`);
 	};
 
-	var remove_success = function(){
+	var remove_success = function () {
 		console.log(`URL successfully removed.`);
 	};
 
-	var remove_failed = function(url){
+	var remove_failed = function (url) {
 		console.log(`Remove failed. URL ${url} does not exist.`);
 	};
 
-	var clear_all_success = function(){
+	var clear_all_success = function () {
 		console.log("Cleared all URLs.");
 	};
 
@@ -45,12 +48,12 @@ var readLaterApp = (function(){
 })();
 
 
-chrome.commands.onCommand.addListener(function(command) {
-  console.log('Command:', command);
-  if (command === "add-url") {
-    console.log("Adding URL");
-    readLaterApp.addURLFromTab();
-  }
+chrome.commands.onCommand.addListener(function (command) {
+	console.log('Command:', command);
+	if (command === "add-url") {
+		console.log("Adding URL");
+		readLaterApp.addURLFromTab();
+	}
 });
 
 chrome.runtime.onStartup.addListener(readLaterObject.setBadge);

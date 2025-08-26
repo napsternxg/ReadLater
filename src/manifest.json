@@ -1,9 +1,9 @@
 {
   "name": "Read Later",
-  "version": "4.0.3",
-  "manifest_version": 2,
+  "version": "4.1.1",
+  "manifest_version": 3,
   "description": "Store links to read later.",
-  "browser_action": {
+  "action": {
     "default_icon": "icon.png",
     "default_popup": "popup.html"
   },
@@ -11,13 +11,16 @@
     "48": "icon.png"
   },
   "background": {
-    "scripts": ["core.js", "background.js"],
-    "persistent": false
+    "service_worker": "background.js"
   },
   "permissions": [
     "storage",
     "activeTab"
   ],
+  "options_ui": {
+    "page": "tab.html",
+    "open_in_tab": true
+  },
   "commands": {
     "add-url": {
       "suggested_key": {

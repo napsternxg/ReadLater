@@ -25,20 +25,20 @@ LICENSE: GPL-2.0
 
 const MAX_BUTTON_ITEMS = 999;
 
-let readLater = (function(storageObject) {
+let readLater = (function (storageObject) {
 
   let storage = storageObject;
 
-  let badgeText = function(c) {
+  let badgeText = function (c) {
     if (c > MAX_BUTTON_ITEMS) {
       return `${MAX_BUTTON_ITEMS}+`;
     }
     return c.toString();
   };
 
-  let getCountsHandler = function(counts_callback) {
-    return function() {
-      storage.get(function(items) {
+  let getCountsHandler = function (counts_callback) {
+    return function () {
+      storage.get(function (items) {
         let counts = 0;
         for (let key in items) {
           if ((typeof key === 'string') && (key !== 'count')) {
@@ -51,18 +51,18 @@ let readLater = (function(storageObject) {
   };
 
 
-  let createNewURLItemFromTab = function(tab) {
-      let urlData = {"title": tab.title, 'timestamp': new Date().getTime()};
-      let urlItem = {'url': tab.url, 'data': urlData};
-      return urlItem;
+  let createNewURLItemFromTab = function (tab) {
+    let urlData = { "title": tab.title, 'timestamp': new Date().getTime() };
+    let urlItem = { 'url': tab.url, 'data': urlData };
+    return urlItem;
   };
 
-  let isValidSyncItem = function(syncItem) {
+  let isValidSyncItem = function (syncItem) {
     if (Object.keys(syncItem).length != 1) {
       return false;
     }
     for (let key in syncItem) {
-      if(typeof syncItem[key] !== "object"){
+      if (typeof syncItem[key] !== "object") {
         return false;
       }
       if (!('title' in syncItem[key])) {
@@ -77,9 +77,9 @@ let readLater = (function(storageObject) {
     return true;
   };
 
-  let getValidSyncItems = function(callback) {
-    storage.get(function(items) {
-      links.innerHTML = '';
+  let getValidSyncItems = function (callback) {
+    storage.get(function (items) {
+      // removed DOM mutation here (previously: links.innerHTML = '')
       let syncItems = new Array();
 
       for (let key in items) {
@@ -103,20 +103,23 @@ let readLater = (function(storageObject) {
     // storage: storage,
     getCountsHandler: getCountsHandler,
     getValidSyncItems: getValidSyncItems,
-
-    setBadge: getCountsHandler(function(counts) {
-      chrome.browserAction.setBadgeText({
+    // expose the configured max button items so UI can show it
+    getMaxButtonItems: function () {
+      return MAX_BUTTON_ITEMS;
+    },
+    setBadge: getCountsHandler(function (counts) {
+      chrome.action.setBadgeText({
         'text': badgeText(counts),
       });
     }),
 
-    addURLFromTabHandler: function(success_callback) {
-      return function() {
-        chrome.tabs.query({"active": true, 'currentWindow': true}, function(
+    addURLFromTabHandler: function (success_callback) {
+      return function () {
+        chrome.tabs.query({ "active": true, 'currentWindow': true }, function (
           tabs) {
 
           if (!tabs.length) // Sanity check in case no active tab was found
-            {return;}
+          { return; }
           let tab = tabs[0];
 
           let urlItem = createNewURLItemFromTab(tab);
@@ -125,9 +128,9 @@ let readLater = (function(storageObject) {
       };
     },
 
-    addURLHandler: function(success_callback, exists_callback) {
-      return function(urlItem) {
-        storage.get(urlItem.url, function(urlItemFound) {
+    addURLHandler: function (success_callback, exists_callback) {
+      return function (urlItem) {
+        storage.get(urlItem.url, function (urlItemFound) {
           if (isValidSyncItem(urlItemFound)) {
             exists_callback(urlItem);
           } else {
@@ -139,9 +142,9 @@ let readLater = (function(storageObject) {
       };
     },
 
-    removeURLHandler: function(success_callback, failed_callback) {
-      return function(url) {
-        storage.get(url, function(urlItemFound) {
+    removeURLHandler: function (success_callback, failed_callback) {
+      return function (url) {
+        storage.get(url, function (urlItemFound) {
           if (urlItemFound) {
             storage.remove(url, success_callback);
           } else {
@@ -151,8 +154,8 @@ let readLater = (function(storageObject) {
       };
     },
 
-    clearAllHandler: function(success_callback) {
-      return function() {
+    clearAllHandler: function (success_callback) {
+      return function () {
         let confirmVal = confirm('Are you sure you want to delete all links?');
         if (confirmVal === true) {
           storage.clear(success_callback);
@@ -160,6 +163,6 @@ let readLater = (function(storageObject) {
       };
     },
   };
-  
+
 });
 
