@@ -190,3 +190,68 @@ td a:hover {
     color: #666;
     margin-left: 6px;
 }
+
+/* Open tabs section */
+#openTabsSection {
+    margin-top: 16px;
+}
+
+.tabs-controls {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+#tabsTable {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+#tabsTable th,
+#tabsTable td {
+    text-align: left;
+    padding: 8px;
+    border-bottom: 1px solid #e6e6e6;
+    vertical-align: middle;
+    font-size: 14px;
+}
+
+/* sortable headers */
+#tabsTable thead th.sortable {
+    cursor: pointer;
+    user-select: none;
+}
+
+.sort-indicator {
+    margin-left: 6px;
+    font-size: 12px;
+    color: #666;
+}
+
+/* window column styling (small) */
+#tabsTable td:nth-child(4) {
+    font-weight: 600;
+    color: #333;
+    width: 120px;
+}
+
+.tab-action-btn {
+    padding: 4px 8px;
+    border: none;
+    background: #28a745;
+    color: #fff;
+    border-radius: 3px;
+    cursor: pointer;
+}
+
+.tab-action-btn[disabled] {
+    opacity: 0.6;
+    cursor: default;
+}
+
+#tabsEmptyState {
+    margin-top: 8px;
+    color: #666;
+    font-style: italic;
+}

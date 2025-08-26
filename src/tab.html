@@ -14,14 +14,13 @@
             <input id="searchInput" type="search" placeholder="Search by title or URL..." />
             <button id="refreshBtn" title="Refresh list">Refresh</button>
             <button id="downloadBtn" title="Download JSON">Download JSON</button>
+            <button id="clearSavedBtn" title="Clear all saved links">Clear saved links</button>
         </div>
     </header>
 
-    <!-- options meta: profile and configured max badge count -->
+    <!-- options meta: quick CTA to enable Chrome sync and max badge count -->
     <div id="optionsMeta" aria-hidden="false">
-        Profile: <span id="userProfile">Checking...</span>
-        <button id="enableSyncBtn" class="mini-cta hidden" title="Open Chrome sign-in / sync settings">Enable
-            Sync</button>
+        Sync: <a id="enableSyncLink" class="mini-cta" href="#">Enable sync / Sign in</a>
         &middot; Max badge count: <span id="maxItems">...</span>
     </div>
 
@@ -56,6 +55,30 @@
         </table>
 
         <div id="emptyState" class="hidden">No links saved.</div>
+
+        <!-- Open Tabs: list tabs in current window and allow adding them -->
+        <section id="openTabsSection" aria-label="Open tabs">
+            <div class="tabs-controls">
+                <input id="searchTabsInput" type="search" placeholder="Search open tabs (title, URL)..." />
+                <button id="refreshTabsBtn" title="Refresh open tabs">Refresh Tabs</button>
+                <button id="addAllTabsBtn" title="Add all open tabs">Add All Tabs</button>
+            </div>
+            <table id="tabsTable" aria-label="Open browser tabs">
+                <thead>
+                    <tr>
+                        <th>Fav</th>
+                        <th class="sortable" data-col="title">Title <span class="sort-indicator"></span></th>
+                        <th class="sortable" data-col="url">URL <span class="sort-indicator"></span></th>
+                        <th class="sortable" data-col="window">Window <span class="sort-indicator"></span></th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- rows inserted by tab.js -->
+                </tbody>
+            </table>
+            <div id="tabsEmptyState" class="hidden">No open tabs found.</div>
+        </section>
     </main>
 
     <script src="core.js"></script>

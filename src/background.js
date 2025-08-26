@@ -48,11 +48,30 @@ var readLaterApp = (function () {
 })();
 
 
-chrome.commands.onCommand.addListener(function (command) {
-	console.log('Command:', command);
-	if (command === "add-url") {
-		console.log("Adding URL");
-		readLaterApp.addURLFromTab();
+// Listen for keyboard command "add-url" and save the active tab
+chrome.commands && chrome.commands.onCommand.addListener(function (command) {
+	if (command === 'add-url') {
+		try {
+			chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+				if (!tabs || !tabs.length) return;
+				const tab = tabs[0];
+				if (!tab || !tab.url) return;
+				const urlItem = { url: tab.url, data: { title: tab.title || '', timestamp: Date.now() } };
+
+				// uses existing addURLHandler (success_callback, exists_callback)
+				const onSuccess = function () {
+					// optional: update badge count via getCountsHandler if needed
+					// readLaterObject.setBadge && readLaterObject.setBadge();
+				};
+				const onExists = function () {
+					// no-op
+				};
+				const addHandler = readLaterObject.addURLHandler(onSuccess, onExists);
+				addHandler(urlItem);
+			});
+		} catch (e) {
+			console.warn('add-url command handler failed', e);
+		}
 	}
 });
 

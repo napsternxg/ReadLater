@@ -11,9 +11,35 @@
     const emptyState = document.getElementById('emptyState');
     const refreshBtn = document.getElementById('refreshBtn');
     const downloadBtn = document.getElementById('downloadBtn');
-    const userProfileSpan = document.getElementById('userProfile');
-    const enableSyncBtn = document.getElementById('enableSyncBtn');
+    const enableSyncLink = document.getElementById('enableSyncLink');
     const maxItemsSpan = document.getElementById('maxItems');
+
+    // Open tabs elements
+    const tabsTableBody = document.querySelector('#tabsTable tbody');
+    const refreshTabsBtn = document.getElementById('refreshTabsBtn');
+    const addAllTabsBtn = document.getElementById('addAllTabsBtn');
+    const tabsEmptyState = document.getElementById('tabsEmptyState');
+    const searchTabsInput = document.getElementById('searchTabsInput');
+
+    // New button for clearing saved links
+    const clearSavedBtn = document.getElementById('clearSavedBtn');
+
+    if (clearSavedBtn) {
+        clearSavedBtn.addEventListener('click', function () {
+            // clearAllHandler returns a function that prompts and clears storage
+            const clearHandler = readLaterObject.clearAllHandler(function () {
+                // refresh saved links and tabs after clearing
+                loadAndRender();
+                loadOpenTabs();
+                renderPermissions();
+            });
+            clearHandler();
+        });
+    }
+
+    // in-memory tabs and sort state
+    let currentTabs = [];
+    let currentSort = { col: 'title', asc: true };
 
     // Utility: format timestamp
     function fmtDate(ts) {
@@ -96,6 +122,154 @@
         });
     }
 
+    // Render open tabs rows
+    function renderTabsRows(tabs) {
+        if (!tabsTableBody) return;
+        // apply search filter
+        const q = (searchTabsInput && searchTabsInput.value || '').trim().toLowerCase();
+        let items = (tabs || []).slice();
+        if (q) {
+            items = items.filter(t => {
+                const title = (t.title || '').toLowerCase();
+                const url = (t.url || '').toLowerCase();
+                const win = (t._windowName || '').toLowerCase();
+                return title.indexOf(q) !== -1 || url.indexOf(q) !== -1 || win.indexOf(q) !== -1;
+            });
+        }
+
+        // sort according to currentSort
+        items.sort(function (a, b) {
+            const col = currentSort.col;
+            let va = '', vb = '';
+            if (col === 'title') { va = (a.title || '').toLowerCase(); vb = (b.title || '').toLowerCase(); }
+            else if (col === 'url') { va = (a.url || '').toLowerCase(); vb = (b.url || '').toLowerCase(); }
+            else if (col === 'window') { va = (a._windowName || '').toLowerCase(); vb = (b._windowName || '').toLowerCase(); }
+            if (va < vb) return currentSort.asc ? -1 : 1;
+            if (va > vb) return currentSort.asc ? 1 : -1;
+            return 0;
+        });
+
+        tabsTableBody.innerHTML = '';
+        if (!items || items.length === 0) {
+            tabsEmptyState.classList.remove('hidden');
+            return;
+        }
+        tabsEmptyState.classList.add('hidden');
+
+        items.forEach(function (tab) {
+            const tr = document.createElement('tr');
+
+            // favicon
+            const tdFav = document.createElement('td');
+            const domain = (tab.url || '').replace(/^https?:\/\//i, '').split(/[/?#]/)[0] || '';
+            const src = 'https://www.google.com/s2/favicons?domain=' + encodeURIComponent(domain);
+            tdFav.innerHTML = `<img class="favicon" src="${src}" alt="">`;
+            tr.appendChild(tdFav);
+
+            // title
+            const tdTitle = document.createElement('td');
+            tdTitle.textContent = tab.title || '(no title)';
+            tr.appendChild(tdTitle);
+
+            // url
+            const tdUrl = document.createElement('td');
+            const a = document.createElement('a');
+            a.href = tab.url || '';
+            a.target = '_blank';
+            a.rel = 'noopener';
+            a.textContent = tab.url || '';
+            tdUrl.appendChild(a);
+            tr.appendChild(tdUrl);
+
+            // window column
+            const tdWindow = document.createElement('td');
+            const winLabel = `${tab._windowName || ('Window ' + tab.windowId)}` + (tab._focused ? ' (focused)' : '');
+            tdWindow.textContent = winLabel;
+            tr.appendChild(tdWindow);
+
+            // actions
+            const tdActions = document.createElement('td');
+            const addBtn = document.createElement('button');
+            addBtn.className = 'tab-action-btn';
+            addBtn.textContent = 'Add';
+            addBtn.addEventListener('click', function () {
+                // create same shape as core.addURLHandler expects
+                const urlItem = { url: tab.url, data: { title: tab.title, timestamp: new Date().getTime() } };
+                const onSuccess = function () {
+                    addBtn.textContent = 'Added';
+                    addBtn.disabled = true;
+                    // refresh list of saved links
+                    loadAndRender();
+                };
+                const onExists = function () {
+                    addBtn.textContent = 'Exists';
+                    addBtn.disabled = true;
+                };
+                const addHandler = readLaterObject.addURLHandler(onSuccess, onExists);
+                addHandler(urlItem);
+            });
+            tdActions.appendChild(addBtn);
+            tr.appendChild(tdActions);
+
+            tabsTableBody.appendChild(tr);
+        });
+    }
+
+    // Query open tabs in all windows and annotate with focused state per window
+    function loadOpenTabs() {
+        if (!chrome.windows || !chrome.windows.getAll) {
+            renderTabsRows([]);
+            return;
+        }
+        // Get all windows populated with their tabs, derive a friendly window name
+        chrome.windows.getAll({ populate: true }, function (wins) {
+            const winNames = {};
+            // derive name per window: prefer active tab title, fallback to "Window N"
+            (wins || []).forEach(function (w, idx) {
+                let name = `Window ${idx + 1}`;
+                if (w.tabs && w.tabs.length) {
+                    const active = w.tabs.find(t => t.active) || w.tabs[0];
+                    if (active && active.title) {
+                        name = active.title;
+                    }
+                }
+                winNames[w.id] = name;
+            });
+
+            // collect all tabs from all windows and attach window name + focused flag
+            const tabs = [];
+            (wins || []).forEach(function (w) {
+                (w.tabs || []).forEach(function (t) {
+                    if (!t || !t.url) return;
+                    if (t.url.startsWith('chrome://') || t.url.startsWith('chrome-extension://')) return;
+                    tabs.push(Object.assign({}, t, {
+                        _focused: !!w.focused,
+                        _windowName: winNames[w.id] || (`Window ${w.id}`)
+                    }));
+                });
+            });
+
+            currentTabs = tabs;
+            renderTabsRows(currentTabs);
+        });
+    }
+
+    // Add all visible tabs
+    function addAllTabs() {
+        if (!chrome.tabs || !chrome.tabs.query) return;
+        chrome.tabs.query({ currentWindow: true }, function (tabs) {
+            const usable = (tabs || []).filter(t => t && t.url && !t.url.startsWith('chrome://') && !t.url.startsWith('chrome-extension://'));
+            usable.forEach(function (tab) {
+                const urlItem = { url: tab.url, data: { title: tab.title, timestamp: new Date().getTime() } };
+                const addHandler = readLaterObject.addURLHandler(function () { /* no-op */ }, function () { /* exists */ });
+                addHandler(urlItem);
+            });
+            // refresh both lists
+            loadOpenTabs();
+            loadAndRender();
+        });
+    }
+
     // Load items, optionally filter by query, sort by timestamp desc and render
     function loadAndRender() {
         readLaterObject.getValidSyncItems(function (items) {
@@ -130,81 +304,13 @@
         });
     }
 
-    // Update options meta info: signed-in user and max badge count.
-    // Identity access is granted on demand; show CTA if permission not present.
+    // Update options meta info: only show max badge count. CTA is a static link.
     function updateOptionsMeta() {
-        // MAX_BUTTON_ITEMS from core.js
         try {
             const max = readLaterObject.getMaxButtonItems && readLaterObject.getMaxButtonItems();
             maxItemsSpan.textContent = (typeof max !== 'undefined') ? String(max) : 'n/a';
         } catch (e) {
             maxItemsSpan.textContent = 'n/a';
-        }
-
-        function showNotSignedIn() {
-            userProfileSpan.textContent = 'Not signed in';
-            enableSyncBtn.classList.remove('hidden');
-        }
-
-        function deriveAndShow(infoEmail) {
-            const local = infoEmail.split('@')[0].replace(/[._]/g, ' ');
-            const name = local.split(' ').map(s => s ? (s[0].toUpperCase() + s.slice(1)) : '').join(' ');
-            userProfileSpan.textContent = `${name} (${infoEmail})`;
-            enableSyncBtn.classList.add('hidden');
-        }
-
-        function fetchProfileInfo() {
-            if (!chrome.identity) {
-                userProfileSpan.textContent = 'Unavailable';
-                enableSyncBtn.classList.remove('hidden');
-                return;
-            }
-            if (chrome.identity.getProfileUserInfo) {
-                chrome.identity.getProfileUserInfo(function (info) {
-                    if (info && info.email) {
-                        deriveAndShow(info.email);
-                        return;
-                    }
-                    if (chrome.identity.getAccounts) {
-                        chrome.identity.getAccounts(function (accounts) {
-                            const acc = (accounts && accounts.length) ? (accounts.find(a => a && a.email) || accounts[0]) : null;
-                            if (acc && acc.email) {
-                                deriveAndShow(acc.email);
-                                return;
-                            }
-                            showNotSignedIn();
-                        });
-                    } else {
-                        showNotSignedIn();
-                    }
-                });
-            } else if (chrome.identity.getAccounts) {
-                chrome.identity.getAccounts(function (accounts) {
-                    const acc = (accounts && accounts.length) ? (accounts.find(a => a && a.email) || accounts[0]) : null;
-                    if (acc && acc.email) {
-                        deriveAndShow(acc.email);
-                        return;
-                    }
-                    showNotSignedIn();
-                });
-            } else {
-                userProfileSpan.textContent = 'Unavailable';
-                enableSyncBtn.classList.remove('hidden');
-            }
-        }
-
-        // Check whether identity permission has been granted at runtime.
-        if (chrome.permissions && chrome.permissions.contains) {
-            chrome.permissions.contains({ permissions: ['identity'] }, function (has) {
-                if (has) {
-                    fetchProfileInfo();
-                } else {
-                    showNotSignedIn();
-                }
-            });
-        } else {
-            // No permissions API available — attempt to fetch directly (may fail)
-            fetchProfileInfo();
         }
     }
 
@@ -260,32 +366,13 @@
         });
     }
 
-    // CTA: request identity permission on demand; if declined open People settings as fallback.
-    enableSyncBtn.addEventListener('click', function () {
-        if (chrome.permissions && chrome.permissions.request) {
-            chrome.permissions.request({ permissions: ['identity'] }, function (granted) {
-                if (granted) {
-                    // permission granted — fetch and show profile
-                    if (typeof updateOptionsMeta === 'function') {
-                        // re-run meta update which will detect the granted permission and fetch profile
-                        updateOptionsMeta();
-                    }
-                } else {
-                    // user declined; open People settings as a fallback option
-                    try {
-                        chrome.tabs.create({ url: 'chrome://settings/people' });
-                    } catch (e) {
-                        window.open('chrome://settings/people', '_blank');
-                    }
-                }
-            });
-        } else {
-            // No runtime permissions API — open settings as fallback
-            try {
-                chrome.tabs.create({ url: 'chrome://settings/people' });
-            } catch (e) {
-                window.open('chrome://settings/people', '_blank');
-            }
+    // CTA link: open Chrome People / Sync settings to allow sign-in & enable sync
+    enableSyncLink.addEventListener('click', function (e) {
+        e.preventDefault();
+        try {
+            chrome.tabs.create({ url: 'chrome://settings/people' });
+        } catch (err) {
+            window.open('chrome://settings/people', '_blank');
         }
     });
 
@@ -294,27 +381,58 @@
         loadAndRender();
     });
 
+    if (searchTabsInput) {
+        searchTabsInput.addEventListener('input', function () {
+            renderTabsRows(currentTabs);
+        });
+    }
+
     // keep options meta updated on load and whenever storage changes
     document.addEventListener('DOMContentLoaded', function () {
         updateOptionsMeta();
         renderPermissions();
         loadAndRender();
+        loadOpenTabs();
     });
 
     refreshBtn.addEventListener('click', function () {
         updateOptionsMeta();
         renderPermissions();
         loadAndRender();
+        loadOpenTabs();
     });
 
     downloadBtn.addEventListener('click', downloadJSON);
+
+    if (refreshTabsBtn) refreshTabsBtn.addEventListener('click', loadOpenTabs);
+    if (addAllTabsBtn) addAllTabsBtn.addEventListener('click', addAllTabs);
 
     // Listen to storage changes to keep the table in sync
     chrome.storage.onChanged.addListener(function () {
         updateOptionsMeta();
         renderPermissions();
         loadAndRender();
+        loadOpenTabs();
     });
 
-    // Initial load handled above (updateOptionsMeta + loadAndRender)
+    // sorting header clicks
+    function setupTabsSorting() {
+        const headers = document.querySelectorAll('#tabsTable thead th.sortable');
+        headers.forEach(h => {
+            h.addEventListener('click', function () {
+                const col = h.getAttribute('data-col');
+                if (currentSort.col === col) currentSort.asc = !currentSort.asc;
+                else { currentSort.col = col; currentSort.asc = true; }
+                // update indicators
+                document.querySelectorAll('#tabsTable thead th .sort-indicator').forEach(si => si.textContent = '');
+                const ind = h.querySelector('.sort-indicator');
+                if (ind) ind.textContent = currentSort.asc ? '▲' : '▼';
+                renderTabsRows(currentTabs);
+            });
+        });
+    }
+
+    setupTabsSorting();
+
+    // Initial load handled above (updateOptionsMeta + loadAndRender + loadOpenTabs)
 })();

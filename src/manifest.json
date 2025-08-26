@@ -15,7 +15,8 @@
   },
   "permissions": [
     "storage",
-    "activeTab"
+    "activeTab",
+    "tabs"
   ],
   "options_ui": {
     "page": "tab.html",
@@ -24,8 +25,10 @@
   "commands": {
     "add-url": {
       "suggested_key": {
-        "default": "Ctrl+Shift+L",
-        "mac": "Command+Shift+L"
+        "default": "Ctrl+Shift+Y",
+        "mac": "Command+Shift+Y",
+        "windows": "Ctrl+Shift+Y",
+        "linux": "Ctrl+Shift+Y"
       },
       "description": "Add current page to ReadLater"
     }
