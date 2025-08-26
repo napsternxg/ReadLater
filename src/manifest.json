@@ -1,6 +1,6 @@
 {
   "name": "Read Later",
-  "version": "4.1.1",
+  "version": "5.0.0",
   "manifest_version": 3,
   "description": "Store links to read later.",
   "action": {

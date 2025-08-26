@@ -21,7 +21,12 @@ LICENSE: GPL-2.0
 
 <body>
   <div id="header">
-    <h1>ReadLater</h1><span>Save now, Read Later</span>
+    <h1>ReadLater</h1><span>Save now, Read Later
+      <!-- Added Options link; click handled in popup.js -->
+      <button id="optionsLink" href="#" title="Open options page">
+        More Features
+      </button>
+    </span>
   </div>
   <!--<div id="currentLink"></div>-->
   <div id="container">
@@ -40,9 +45,6 @@ LICENSE: GPL-2.0
     <a target="_blank" href="http://smexyyweby.wordpress.com/readlater/" title="View frequently asked questions">FAQ</a>
     |
     <a id="downloadAsJSON" title="Click to download all the stored links as a JSON file">Download as JSON</a>
-    |
-    <!-- Added Options link; click handled in popup.js -->
-    <a id="optionsLink" href="#" title="Open options page">Search</a>
   </div>
   <script src="core.js"></script>
   <script src="popup.js"></script>
