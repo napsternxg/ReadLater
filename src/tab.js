@@ -28,6 +28,8 @@
     const totalTabsCount = getEl('totalTabsCount', '.tabs-controls .tabs-count');
     const moveTargetWindow = getEl('moveTargetWindow', '.tabs-controls #moveTargetWindow');
     const moveTabsBtn = getEl('moveTabsBtn', '.tabs-controls #moveTabsBtn');
+    const tabsPermissionBtn = getEl('tabsPermissionBtn', '#permButtons #tabsPermissionBtn');
+    const permListEl = document.getElementById('permList');
 
     // in-memory tabs and sort state
     let currentTabs = [];
@@ -433,6 +435,7 @@
     if (addAllTabsBtn) addAllTabsBtn.addEventListener('click', addAllTabs);
     if (dropDuplicatesBtn) dropDuplicatesBtn.addEventListener('click', dropDuplicates);
     if (moveTabsBtn) moveTabsBtn.addEventListener('click', moveSelectedTabs);
+    if (tabsPermissionBtn) tabsPermissionBtn.addEventListener('click', toggleTabsPermission);
 
     // Debounced UI reload for tab/window events (keeps tabsTable in sync)
     let _reloadTimer = null;
@@ -441,43 +444,131 @@
         _reloadTimer = setTimeout(function () { loadOpenTabs(); }, 150);
     }
 
-    // Register local listeners while the UI page is open
-    try {
-        if (chrome && chrome.tabs) {
-            chrome.tabs.onCreated.addListener(scheduleReloadTabs);
-            chrome.tabs.onRemoved.addListener(scheduleReloadTabs);
-            chrome.tabs.onMoved.addListener(scheduleReloadTabs);
-            chrome.tabs.onAttached.addListener(scheduleReloadTabs);
-            chrome.tabs.onDetached.addListener(scheduleReloadTabs);
-            chrome.tabs.onUpdated.addListener(scheduleReloadTabs);
-            chrome.tabs.onActivated.addListener(scheduleReloadTabs);
-        }
-        if (chrome && chrome.windows) {
-            chrome.windows.onCreated.addListener(scheduleReloadTabs);
-            chrome.windows.onRemoved.addListener(scheduleReloadTabs);
-            chrome.windows.onFocusChanged.addListener(scheduleReloadTabs);
-        }
-    } catch (e) { /* ignore if platform doesn't expose these */ }
+    // helper to add/remove tab/window listeners (only active when permission granted)
+    function addTabListeners() {
+        try {
+            if (chrome && chrome.tabs) {
+                chrome.tabs.onCreated.addListener(scheduleReloadTabs);
+                chrome.tabs.onRemoved.addListener(scheduleReloadTabs);
+                chrome.tabs.onMoved.addListener(scheduleReloadTabs);
+                chrome.tabs.onAttached.addListener(scheduleReloadTabs);
+                chrome.tabs.onDetached.addListener(scheduleReloadTabs);
+                chrome.tabs.onUpdated.addListener(scheduleReloadTabs);
+                chrome.tabs.onActivated.addListener(scheduleReloadTabs);
+            }
+            if (chrome && chrome.windows) {
+                chrome.windows.onCreated.addListener(scheduleReloadTabs);
+                chrome.windows.onRemoved.addListener(scheduleReloadTabs);
+                chrome.windows.onFocusChanged.addListener(scheduleReloadTabs);
+            }
+        } catch (e) { /* ignore if platform doesn't expose these */ }
+    }
+
+    function removeTabListeners() {
+        try {
+            if (chrome && chrome.tabs) {
+                try { chrome.tabs.onCreated.removeListener(scheduleReloadTabs); } catch (e) { }
+                try { chrome.tabs.onRemoved.removeListener(scheduleReloadTabs); } catch (e) { }
+                try { chrome.tabs.onMoved.removeListener(scheduleReloadTabs); } catch (e) { }
+                try { chrome.tabs.onAttached.removeListener(scheduleReloadTabs); } catch (e) { }
+                try { chrome.tabs.onDetached.removeListener(scheduleReloadTabs); } catch (e) { }
+                try { chrome.tabs.onUpdated.removeListener(scheduleReloadTabs); } catch (e) { }
+                try { chrome.tabs.onActivated.removeListener(scheduleReloadTabs); } catch (e) { }
+            }
+            if (chrome && chrome.windows) {
+                try { chrome.windows.onCreated.removeListener(scheduleReloadTabs); } catch (e) { }
+                try { chrome.windows.onRemoved.removeListener(scheduleReloadTabs); } catch (e) { }
+                try { chrome.windows.onFocusChanged.removeListener(scheduleReloadTabs); } catch (e) { }
+            }
+        } catch (e) { /* ignore cleanup errors */ }
+    }
 
     // Clean up listeners when the page unloads to avoid duplicates on reload
     window.addEventListener('unload', function () {
-        try {
-            if (chrome && chrome.tabs) {
-                chrome.tabs.onCreated.removeListener(scheduleReloadTabs);
-                chrome.tabs.onRemoved.removeListener(scheduleReloadTabs);
-                chrome.tabs.onMoved.removeListener(scheduleReloadTabs);
-                chrome.tabs.onAttached.removeListener(scheduleReloadTabs);
-                chrome.tabs.onDetached.removeListener(scheduleReloadTabs);
-                chrome.tabs.onUpdated.removeListener(scheduleReloadTabs);
-                chrome.tabs.onActivated.removeListener(scheduleReloadTabs);
-            }
-            if (chrome && chrome.windows) {
-                chrome.windows.onCreated.removeListener(scheduleReloadTabs);
-                chrome.windows.onRemoved.removeListener(scheduleReloadTabs);
-                chrome.windows.onFocusChanged.removeListener(scheduleReloadTabs);
-            }
-        } catch (e) { /* ignore cleanup errors */ }
+        removeTabListeners();
+        try { clearTimeout(_reloadTimer); } catch (e) { }
     });
+
+    // UI enable/disable when permission changes
+    function setTabsUIEnabled(enabled) {
+        // enable/disable controls that require tabs/windows permission
+        try {
+            if (moveTargetWindow) moveTargetWindow.disabled = !enabled;
+            if (moveTabsBtn) moveTabsBtn.disabled = !enabled || selectedTabIds.size === 0;
+            if (refreshTabsBtn) refreshTabsBtn.disabled = !enabled;
+            if (addAllTabsBtn) addAllTabsBtn.disabled = !enabled;
+            if (dropDuplicatesBtn) dropDuplicatesBtn.disabled = !enabled;
+            if (searchTabsInput) searchTabsInput.disabled = !enabled;
+        } catch (e) { }
+    }
+
+    // Check current permission state and update the UI
+    function updatePermissionUI() {
+        if (!tabsPermissionBtn || !chrome.permissions || !chrome.permissions.contains) return;
+        chrome.permissions.contains({ permissions: ['tabs', 'windows'] }, function (granted) {
+            if (granted) {
+                tabsPermissionBtn.textContent = 'Revoke Tab Access';
+                tabsPermissionBtn.classList.add('enabled');
+                setTabsUIEnabled(true);
+                addTabListeners();
+                loadOpenTabs();
+            } else {
+                tabsPermissionBtn.textContent = 'Grant Tab Access';
+                setTabsUIEnabled(false);
+                // clear UI state
+                renderTabsRows([]);
+                if (moveTargetWindow) moveTargetWindow.innerHTML = '';
+                removeTabListeners();
+            }
+            // refresh permissions list in options section
+            refreshPermissionsList();
+        });
+    }
+
+    // Request or remove tabs/windows permission interactively
+    function toggleTabsPermission() {
+        if (!chrome.permissions || !tabsPermissionBtn) return;
+        chrome.permissions.contains({ permissions: ['tabs', 'windows'] }, function (granted) {
+            if (granted) {
+                // remove permission
+                chrome.permissions.remove({ permissions: ['tabs', 'windows'] }, function (removed) {
+                    // update UI regardless
+                    updatePermissionUI();
+                });
+            } else {
+                // request permission
+                chrome.permissions.request({ permissions: ['tabs', 'windows'] }, function (grantedNow) {
+                    updatePermissionUI();
+                });
+            }
+        });
+    }
+
+    // populate #permList with current permissions (declared + optional granted)
+    function refreshPermissionsList() {
+        if (!permListEl || !chrome.permissions || !chrome.permissions.getAll) return;
+        chrome.permissions.getAll(function (perms) {
+            permListEl.innerHTML = '';
+            // perms.permissions is an array of permission names
+            const declared = (perms && perms.permissions) || [];
+            if (!declared.length) {
+                const li = document.createElement('li'); li.textContent = '(no permissions granted)'; permListEl.appendChild(li); return;
+            }
+            declared.forEach(p => {
+                const li = document.createElement('li');
+                li.textContent = p;
+                permListEl.appendChild(li);
+            });
+        });
+    }
+
+    // keep perm list up-to-date when permissions change
+    try {
+        if (chrome && chrome.permissions && chrome.permissions.onAdded) {
+            chrome.permissions.onAdded.addListener(refreshPermissionsList);
+            chrome.permissions.onRemoved.addListener(refreshPermissionsList);
+        }
+    } catch (e) { /* ignore */ }
 
     // Listen to storage changes to keep the table in sync
     chrome.storage.onChanged.addListener(function () {
@@ -509,7 +600,8 @@
         updateSavedCount();
         if (typeof renderPermissions === 'function') renderPermissions();
         loadAndRender();
-        loadOpenTabs();
+        // check permission and initialize tabs UI accordingly
+        updatePermissionUI();
     });
 
 })();

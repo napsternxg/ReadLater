@@ -33,7 +33,7 @@ header h1 {
     align-items: center;
 }
 
-#searchInput {
+.search-input {
     padding: 6px 8px;
     width: 360px;
     max-width: 50vw;
@@ -367,7 +367,7 @@ td a:hover {
 :root {
     /* reasonable default heights (can be tuned) */
     /* slightly smaller header and clearer stacking: optionsMeta is non-sticky so exclude it from offsets */
-    --header-h: 50px;
+    --header-h: 0px;
     --options-meta-h: 36px;
     --tabs-controls-h: 46px;
     /* controls should stick directly beneath the header */
@@ -378,9 +378,9 @@ td a:hover {
 
 /* make main header sticky so search bar stays visible */
 header {
-    position: sticky;
+    /* position: sticky;
     top: 0;
-    z-index: 110;
+    z-index: 110; */
     background: #fff;
     /* ensure opaque background when stuck */
     /* small vertical padding so height matches the var; keeps layout stable */
@@ -427,14 +427,15 @@ header {
 }
 
 /* tabs-controls keeps its sticky positioning but reuses shared styles */
-.tabs-controls {
+/* .tabs-controls {
     position: sticky;
     top: var(--header-h);
     z-index: 104;
-}
+} */
 
 /* links-controls sticky within its section and reuses shared styles */
-.links-controls {
+.links-controls,
+.tabs-controls {
     position: sticky;
     top: var(--header-h);
     z-index: 106;

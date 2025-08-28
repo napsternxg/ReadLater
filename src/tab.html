@@ -9,14 +9,18 @@
 
 <body>
     <header>
-        <h1>ReadLater — Saved Links</h1>
+        <h1>ReadLater — Save Now, Read Later, Organize Tabs &amp; Windows</h1>
+        <!-- options meta: quick CTA to enable Chrome sync and saved count -->
+        <div id="optionsMeta" aria-hidden="false">
+            <a id="enableSyncLink" class="mini-cta" href="#">Enable sync / Sign in</a>
+            &middot;
+            <span id="permButtons" style="margin-left:8px;">
+                <button id="tabsPermissionBtn" class="mini-cta" title="Grant or revoke tab access">Grant Tab
+                    Access</button>
+            </span>
+        </div>
     </header>
 
-    <!-- options meta: quick CTA to enable Chrome sync and saved count -->
-    <div id="optionsMeta" aria-hidden="false">
-        Sync: <a id="enableSyncLink" class="mini-cta" href="#">Enable sync / Sign in</a>
-        &middot;
-    </div>
 
     <!-- Permissions: show declared and granted permissions with friendly descriptions -->
     <section id="permissions" aria-label="Extension permissions">
@@ -36,7 +40,7 @@
         <section id="linksSection" class="data-section">
             <h2 class="section-title">ReadLater Links</h2>
             <div class="section-controls links-controls">
-                <input id="searchInput" type="search" placeholder="Search by title or URL..." />
+                <input id="searchInput" type="search" placeholder="Search by title or URL..." class="search-input" />
                 <button id="refreshBtn" title="Refresh list">Refresh</button>
                 <button id="downloadBtn" title="Download JSON">Download JSON</button>
                 <button id="clearSavedBtn" title="Clear all saved links">Clear saved links</button>
@@ -64,7 +68,8 @@
         <section id="openTabsSection" class="data-section" aria-label="Open tabs">
             <h2 class="section-title">Already Opened Tabs</h2>
             <div class="section-controls tabs-controls">
-                <input id="searchTabsInput" type="search" placeholder="Search open tabs (title, URL, window)..." />
+                <input id="searchTabsInput" type="search" placeholder="Search open tabs (title, URL, window)..."
+                    class="search-input" />
                 <button id="refreshTabsBtn" title="Refresh open tabs">Refresh Tabs</button>
                 <button id="addAllTabsBtn" title="Add all open tabs">Add All Tabs</button>
                 <button id="dropDuplicatesBtn" title="Close duplicate tabs (keep one per URL)">Drop Duplicates</button>

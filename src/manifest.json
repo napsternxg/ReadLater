@@ -2,7 +2,7 @@
   "name": "Read Later",
   "version": "5.0.0",
   "manifest_version": 3,
-  "description": "Store links to read later.",
+  "description": "Store links to read later, organize tabs and windows",
   "action": {
     "default_icon": "icon.png",
     "default_popup": "popup.html"
@@ -15,8 +15,11 @@
   },
   "permissions": [
     "storage",
-    "activeTab",
-    "tabs"
+    "activeTab"
+  ],
+  "optional_permissions": [
+    "tabs",
+    "windows"
   ],
   "options_ui": {
     "page": "tab.html",

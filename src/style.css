@@ -2,7 +2,8 @@ body {
   font-family: sans-serif;
   width: 400px;
 }
-#header h1{
+
+#header h1 {
   color: #555;
   font-size: 24px;
   text-transform: uppercase;
@@ -10,6 +11,7 @@ body {
   margin: 0;
   display: block;
 }
+
 #header span {
   color: #AAA;
   font-size: 16px;
@@ -17,11 +19,15 @@ body {
   margin: 0;
   display: block;
 }
-#links-wrap{
+
+#links-wrap {
   width: 100%;
-  -webkit-box-sizing: border-box; /* Safari/Chrome, other WebKit */
-  -moz-box-sizing: border-box;    /* Firefox, other Gecko */
-  box-sizing: border-box;         /* Opera/IE 8+ */
+  -webkit-box-sizing: border-box;
+  /* Safari/Chrome, other WebKit */
+  -moz-box-sizing: border-box;
+  /* Firefox, other Gecko */
+  box-sizing: border-box;
+  /* Opera/IE 8+ */
   font-size: 12px;
   word-wrap: break-word;
   border: solid 1px #EEE;
@@ -30,12 +36,12 @@ body {
   clear: left;
 }
 
-#downloadAsJSON{
+#downloadAsJSON {
   cursor: pointer;
   cursor: hand;
 }
 
-#links{
+#links {
   list-style: none;
   padding: 0;
   margin: 0;
@@ -43,11 +49,15 @@ body {
   float: left;
   display: block;
 }
+
 #links li {
   width: 100%;
-  -webkit-box-sizing: border-box; /* Safari/Chrome, other WebKit */
-  -moz-box-sizing: border-box;    /* Firefox, other Gecko */
-  box-sizing: border-box;         /* Opera/IE 8+ */
+  -webkit-box-sizing: border-box;
+  /* Safari/Chrome, other WebKit */
+  -moz-box-sizing: border-box;
+  /* Firefox, other Gecko */
+  box-sizing: border-box;
+  /* Opera/IE 8+ */
   display: block;
   float: left;
   margin-top: 4px;
@@ -55,16 +65,20 @@ body {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
 a:link {
   text-decoration: none;
 }
+
 a:hover {
   text-decoration: underline;
 }
-.removeBtn:before{
-    content:'x';
+
+.removeBtn:before {
+  content: 'x';
 }
-.removeBtn{
+
+.removeBtn {
   height: 15px;
   width: 15px;
   line-height: 15px;
@@ -83,18 +97,8 @@ a:hover {
   float: left;
   width: 100%;
 }
-#addBtn{
-  float: right;
-  text-transform: uppercase;
-  font-size: 12px;
-  margin: 12px 6px;
-  cursor: pointer;
-}
-#addBtn:hover, #clearBtn:hover {
-  color: #259DFF;
-  text-decoration: underline;
-}
-#clearBtn{
+
+#addBtn {
   float: right;
   text-transform: uppercase;
   font-size: 12px;
@@ -102,7 +106,21 @@ a:hover {
   cursor: pointer;
 }
 
-#message{
+#addBtn:hover,
+#clearBtn:hover {
+  color: #259DFF;
+  text-decoration: underline;
+}
+
+#clearBtn {
+  float: right;
+  text-transform: uppercase;
+  font-size: 12px;
+  margin: 12px 6px;
+  cursor: pointer;
+}
+
+#message {
   float: left;
   margin: 12px 0;
   font-size: 12px;
@@ -110,20 +128,37 @@ a:hover {
   padding: 0;
 }
 
-#source{
+#source {
   width: 100%;
-  -webkit-box-sizing: border-box; /* Safari/Chrome, other WebKit */
-  -moz-box-sizing: border-box;    /* Firefox, other Gecko */
-  box-sizing: border-box;         /* Opera/IE 8+ */
+  -webkit-box-sizing: border-box;
+  /* Safari/Chrome, other WebKit */
+  -moz-box-sizing: border-box;
+  /* Firefox, other Gecko */
+  box-sizing: border-box;
+  /* Opera/IE 8+ */
   float: left;
   font-size: 10px;
   text-align: center;
   font-weight: bolder;
   padding: 4px;
 }
-a, a:visited {
+
+a,
+a:visited {
   color: #7B838A;
 }
+
 a:hover {
   color: #259DFF;
+}
+
+.mini-cta {
+  margin-left: 8px;
+  padding: 4px 8px;
+  font-size: 12px;
+  background: #259DFF;
+  color: #fff;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
 }
