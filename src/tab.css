@@ -321,7 +321,7 @@ td a:hover {
 #tabsTable th:nth-child(1),
 #linksTable td:nth-child(1),
 #tabsTable td:nth-child(1) {
-    width: 4%;
+    width: 6%;
     /* actions */
 }
 
@@ -329,7 +329,7 @@ td a:hover {
 #tabsTable th:nth-child(2),
 #linksTable td:nth-child(2),
 #tabsTable td:nth-child(2) {
-    width: 44%;
+    width: 42%;
     /* title */
 }
 

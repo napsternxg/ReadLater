@@ -302,7 +302,8 @@
                 (wins || []).forEach(function (w, idx) {
                     const opt = document.createElement('option');
                     opt.value = String(w.id);
-                    opt.textContent = `Window ${idx + 1} (id: ${w.id})`;
+                    const focusedLabel = w && w.focused ? ' (focused)' : '';
+                    opt.textContent = `Window ${idx + 1}` + focusedLabel;
                     moveTargetWindow.appendChild(opt);
                 });
                 updateMoveButtonState();
@@ -432,6 +433,51 @@
     if (addAllTabsBtn) addAllTabsBtn.addEventListener('click', addAllTabs);
     if (dropDuplicatesBtn) dropDuplicatesBtn.addEventListener('click', dropDuplicates);
     if (moveTabsBtn) moveTabsBtn.addEventListener('click', moveSelectedTabs);
+
+    // Debounced UI reload for tab/window events (keeps tabsTable in sync)
+    let _reloadTimer = null;
+    function scheduleReloadTabs() {
+        try { clearTimeout(_reloadTimer); } catch (e) { }
+        _reloadTimer = setTimeout(function () { loadOpenTabs(); }, 150);
+    }
+
+    // Register local listeners while the UI page is open
+    try {
+        if (chrome && chrome.tabs) {
+            chrome.tabs.onCreated.addListener(scheduleReloadTabs);
+            chrome.tabs.onRemoved.addListener(scheduleReloadTabs);
+            chrome.tabs.onMoved.addListener(scheduleReloadTabs);
+            chrome.tabs.onAttached.addListener(scheduleReloadTabs);
+            chrome.tabs.onDetached.addListener(scheduleReloadTabs);
+            chrome.tabs.onUpdated.addListener(scheduleReloadTabs);
+            chrome.tabs.onActivated.addListener(scheduleReloadTabs);
+        }
+        if (chrome && chrome.windows) {
+            chrome.windows.onCreated.addListener(scheduleReloadTabs);
+            chrome.windows.onRemoved.addListener(scheduleReloadTabs);
+            chrome.windows.onFocusChanged.addListener(scheduleReloadTabs);
+        }
+    } catch (e) { /* ignore if platform doesn't expose these */ }
+
+    // Clean up listeners when the page unloads to avoid duplicates on reload
+    window.addEventListener('unload', function () {
+        try {
+            if (chrome && chrome.tabs) {
+                chrome.tabs.onCreated.removeListener(scheduleReloadTabs);
+                chrome.tabs.onRemoved.removeListener(scheduleReloadTabs);
+                chrome.tabs.onMoved.removeListener(scheduleReloadTabs);
+                chrome.tabs.onAttached.removeListener(scheduleReloadTabs);
+                chrome.tabs.onDetached.removeListener(scheduleReloadTabs);
+                chrome.tabs.onUpdated.removeListener(scheduleReloadTabs);
+                chrome.tabs.onActivated.removeListener(scheduleReloadTabs);
+            }
+            if (chrome && chrome.windows) {
+                chrome.windows.onCreated.removeListener(scheduleReloadTabs);
+                chrome.windows.onRemoved.removeListener(scheduleReloadTabs);
+                chrome.windows.onFocusChanged.removeListener(scheduleReloadTabs);
+            }
+        } catch (e) { /* ignore cleanup errors */ }
+    });
 
     // Listen to storage changes to keep the table in sync
     chrome.storage.onChanged.addListener(function () {
