@@ -1,45 +1,43 @@
-/*
-  Tab page script for listing/searching/removing saved links.
-  Depends on core.js which provides readLater(storage).
-*/
+/* Tab page script for listing/searching/removing saved links.
+   Depends on core.js which provides readLater(storage). */
 
 (function () {
     const readLaterObject = readLater(chrome.storage.sync);
 
-    const searchInput = document.getElementById('searchInput');
+    // helper: prefer ID lookups (non-breaking) but allow shared class fallbacks
+    function getEl(id, classFallback) {
+        return document.getElementById(id) || document.querySelector(classFallback || ('#' + id));
+    }
+
+    const searchInput = getEl('searchInput', '.section-controls input[type="search"]');
     const linksTableBody = document.querySelector('#linksTable tbody');
     const emptyState = document.getElementById('emptyState');
-    const refreshBtn = document.getElementById('refreshBtn');
-    const downloadBtn = document.getElementById('downloadBtn');
-    const enableSyncLink = document.getElementById('enableSyncLink');
-    const maxItemsSpan = document.getElementById('maxItems');
+    const refreshBtn = getEl('refreshBtn', '.section-controls button[title="Refresh list"]');
+    const downloadBtn = getEl('downloadBtn', '.section-controls button[title="Download JSON"]');
+    const enableSyncLink = getEl('enableSyncLink', 'a.mini-cta');
+    const savedCountEl = getEl('savedCount', '.saved-count #savedCount');
+    const clearSavedBtn = getEl('clearSavedBtn', '.section-controls button[title="Clear saved links"]');
 
     // Open tabs elements
     const tabsTableBody = document.querySelector('#tabsTable tbody');
-    const refreshTabsBtn = document.getElementById('refreshTabsBtn');
-    const addAllTabsBtn = document.getElementById('addAllTabsBtn');
+    const refreshTabsBtn = getEl('refreshTabsBtn', '.tabs-controls button[title="Refresh open tabs"]');
+    const addAllTabsBtn = getEl('addAllTabsBtn', '.tabs-controls button[title="Add all open tabs"]');
+    const dropDuplicatesBtn = getEl('dropDuplicatesBtn', '.tabs-controls button[title^="Close duplicate"]');
     const tabsEmptyState = document.getElementById('tabsEmptyState');
-    const searchTabsInput = document.getElementById('searchTabsInput');
-
-    // New button for clearing saved links
-    const clearSavedBtn = document.getElementById('clearSavedBtn');
-
-    if (clearSavedBtn) {
-        clearSavedBtn.addEventListener('click', function () {
-            // clearAllHandler returns a function that prompts and clears storage
-            const clearHandler = readLaterObject.clearAllHandler(function () {
-                // refresh saved links and tabs after clearing
-                loadAndRender();
-                loadOpenTabs();
-                renderPermissions();
-            });
-            clearHandler();
-        });
-    }
+    const searchTabsInput = getEl('searchTabsInput', '.tabs-controls input[type="search"]');
+    const totalTabsCount = getEl('totalTabsCount', '.tabs-controls .tabs-count');
+    const moveTargetWindow = getEl('moveTargetWindow', '.tabs-controls #moveTargetWindow');
+    const moveTabsBtn = getEl('moveTabsBtn', '.tabs-controls #moveTabsBtn');
 
     // in-memory tabs and sort state
     let currentTabs = [];
     let currentSort = { col: 'title', asc: true };
+    let selectedTabIds = new Set();
+
+    function updateMoveButtonState() {
+        if (!moveTabsBtn || !moveTargetWindow) return;
+        moveTabsBtn.disabled = selectedTabIds.size === 0 || !moveTargetWindow.value;
+    }
 
     // Utility: format timestamp
     function fmtDate(ts) {
@@ -51,14 +49,21 @@
         }
     }
 
-    // Utility: favicon HTML for a URL
-    function faviconImg(url) {
-        const domain = url.replace(/^https?:\/\//i, '').split(/[/?#]/)[0];
+    // Utility: favicon + title HTML
+    function titleWithFavicon(title, url) {
+        const domain = (url || '').replace(/^https?:\/\//i, '').split(/[/?#]/)[0] || '';
         const src = 'https://www.google.com/s2/favicons?domain=' + encodeURIComponent(domain);
-        return `<img class="favicon" src="${src}" alt="">`;
+        return `<span class="title-cell"><img class="favicon" src="${src}" alt=""> <span class="title-text">${(title || '(no title)')}</span></span>`;
     }
 
-    // Render rows given items array
+    // normalize URL for duplicate detection (remove fragment)
+    function normalizeUrlForDup(url) {
+        if (!url) return url;
+        const idx = url.indexOf('#');
+        return idx >= 0 ? url.slice(0, idx) : url;
+    }
+
+    // Render saved links rows (actions first, title consolidated)
     function renderRows(items) {
         linksTableBody.innerHTML = '';
         if (!items || items.length === 0) {
@@ -70,19 +75,35 @@
         items.forEach(function (it) {
             const tr = document.createElement('tr');
 
-            // favicon
-            const tdFav = document.createElement('td');
-            tdFav.innerHTML = faviconImg(it.key);
-            tr.appendChild(tdFav);
+            // actions (first)
+            const tdActions = document.createElement('td');
+            const removeBtn = document.createElement('button');
+            removeBtn.className = 'action-btn';
+            removeBtn.title = 'Remove saved link';
+            removeBtn.setAttribute('aria-label', 'Remove saved link');
+            removeBtn.textContent = 'x';
+            removeBtn.addEventListener('click', function () {
+                const removeSuccess = function () {
+                    loadAndRender();
+                    updateSavedCount();
+                };
+                const removeFailed = function (url) {
+                    console.warn('Remove failed:', url);
+                    loadAndRender();
+                    updateSavedCount();
+                };
+                const removeURL = readLaterObject.removeURLHandler(removeSuccess, removeFailed);
+                removeURL(it.key);
+            });
+            tdActions.appendChild(removeBtn);
+            tr.appendChild(tdActions);
 
-            // title
+            // title consolidated with favicon
             const tdTitle = document.createElement('td');
-            const titleText = document.createElement('div');
-            titleText.textContent = it.title || '(no title)';
-            tdTitle.appendChild(titleText);
+            tdTitle.innerHTML = titleWithFavicon(it.title, it.key);
             tr.appendChild(tdTitle);
 
-            // url
+            // url (opens in new tab)
             const tdUrl = document.createElement('td');
             const a = document.createElement('a');
             a.href = it.key;
@@ -97,32 +118,12 @@
             tdAdded.textContent = fmtDate(it.timestamp);
             tr.appendChild(tdAdded);
 
-            // actions
-            const tdActions = document.createElement('td');
-            const removeBtn = document.createElement('button');
-            removeBtn.className = 'action-btn';
-            removeBtn.textContent = 'Remove';
-            removeBtn.addEventListener('click', function () {
-                // call remove handler from core
-                const removeSuccess = function () {
-                    // re-render after removal
-                    loadAndRender();
-                };
-                const removeFailed = function (url) {
-                    console.warn('Remove failed:', url);
-                    loadAndRender();
-                };
-                const removeURL = readLaterObject.removeURLHandler(removeSuccess, removeFailed);
-                removeURL(it.key);
-            });
-            tdActions.appendChild(removeBtn);
-            tr.appendChild(tdActions);
 
             linksTableBody.appendChild(tr);
         });
     }
 
-    // Render open tabs rows
+    // Render open tabs rows (actions first, title consolidated)
     function renderTabsRows(tabs) {
         if (!tabsTableBody) return;
         // apply search filter
@@ -159,84 +160,127 @@
         items.forEach(function (tab) {
             const tr = document.createElement('tr');
 
-            // favicon
-            const tdFav = document.createElement('td');
-            const domain = (tab.url || '').replace(/^https?:\/\//i, '').split(/[/?#]/)[0] || '';
-            const src = 'https://www.google.com/s2/favicons?domain=' + encodeURIComponent(domain);
-            tdFav.innerHTML = `<img class="favicon" src="${src}" alt="">`;
-            tr.appendChild(tdFav);
-
-            // title
-            const tdTitle = document.createElement('td');
-            tdTitle.textContent = tab.title || '(no title)';
-            tr.appendChild(tdTitle);
-
-            // url
-            const tdUrl = document.createElement('td');
-            const a = document.createElement('a');
-            a.href = tab.url || '';
-            a.target = '_blank';
-            a.rel = 'noopener';
-            a.textContent = tab.url || '';
-            tdUrl.appendChild(a);
-            tr.appendChild(tdUrl);
-
-            // window column
-            const tdWindow = document.createElement('td');
-            const winLabel = `${tab._windowName || ('Window ' + tab.windowId)}` + (tab._focused ? ' (focused)' : '');
-            tdWindow.textContent = winLabel;
-            tr.appendChild(tdWindow);
-
-            // actions
+            // actions (first) — Add / Exists and Close (X)
             const tdActions = document.createElement('td');
+
+            // selection checkbox for moving tabs between windows
+            const sel = document.createElement('input');
+            sel.type = 'checkbox';
+            sel.className = 'tab-select';
+            sel.setAttribute('data-tabid', String(tab.id));
+            // reflect current selection state
+            try { sel.checked = selectedTabIds.has(tab.id); } catch (e) { /* ignore */ }
+            sel.addEventListener('change', function () {
+                const id = Number(this.getAttribute('data-tabid'));
+                if (this.checked) selectedTabIds.add(id);
+                else selectedTabIds.delete(id);
+                updateMoveButtonState();
+            });
+            tdActions.appendChild(sel);
+
             const addBtn = document.createElement('button');
             addBtn.className = 'tab-action-btn';
-            addBtn.textContent = 'Add';
+            addBtn.title = 'Add tab to saved links';
+            addBtn.setAttribute('aria-label', 'Add tab to saved links');
+            addBtn.textContent = '+';
+            // mark as Exists immediately if already saved
+            (function markIfSaved(btn, tabUrl) {
+                readLaterObject.getValidSyncItems(function (items) {
+                    const normalized = normalizeUrlForDup(tabUrl);
+                    const exists = (items || []).some(it => normalizeUrlForDup(it.key) === normalized);
+                    if (exists) {
+                        // btn.textContent = '+';
+                        btn.disabled = true;
+                    }
+                });
+            })(addBtn, tab.url);
+
             addBtn.addEventListener('click', function () {
-                // create same shape as core.addURLHandler expects
-                const urlItem = { url: tab.url, data: { title: tab.title, timestamp: new Date().getTime() } };
+                const urlItem = { url: tab.url, data: { title: tab.title, timestamp: Date.now() } };
                 const onSuccess = function () {
-                    addBtn.textContent = 'Added';
+                    // addBtn.textContent = 'Exists';
                     addBtn.disabled = true;
-                    // refresh list of saved links
                     loadAndRender();
+                    updateSavedCount();
                 };
                 const onExists = function () {
-                    addBtn.textContent = 'Exists';
+                    // addBtn.textContent = 'Exists';
                     addBtn.disabled = true;
                 };
                 const addHandler = readLaterObject.addURLHandler(onSuccess, onExists);
                 addHandler(urlItem);
             });
+
+            const closeBtn = document.createElement('button');
+            closeBtn.className = 'action-btn';
+            closeBtn.textContent = 'x';
+            closeBtn.title = 'Close tab';
+            closeBtn.addEventListener('click', function () {
+                if (!chrome.tabs || !chrome.tabs.remove) return;
+                chrome.tabs.remove(tab.id, function () {
+                    // refresh list after close
+                    loadOpenTabs();
+                });
+            });
+            tdActions.appendChild(closeBtn);
             tdActions.appendChild(addBtn);
+
             tr.appendChild(tdActions);
+
+            // title consolidated with favicon — clicking will focus the real tab
+            const tdTitle = document.createElement('td');
+            tdTitle.innerHTML = titleWithFavicon(tab.title, tab.url);
+            tdTitle.style.cursor = 'pointer';
+            tdTitle.addEventListener('click', function () {
+                focusTab(tab.id, tab.windowId);
+            });
+            tr.appendChild(tdTitle);
+
+            // url — clicking focuses the existing tab instead of opening a new one
+            const tdUrl = document.createElement('td');
+            const a = document.createElement('a');
+            a.href = '#';
+            a.textContent = tab.url || '';
+            a.addEventListener('click', function (e) {
+                e.preventDefault();
+                focusTab(tab.id, tab.windowId);
+            });
+            tdUrl.appendChild(a);
+            tr.appendChild(tdUrl);
+
+            // window name
+            const tdWindow = document.createElement('td');
+            const winLabel = `${tab._windowName || ('Window ' + tab.windowId)}` + (tab._focused ? ' (focused)' : '');
+            tdWindow.textContent = winLabel;
+            tr.appendChild(tdWindow);
 
             tabsTableBody.appendChild(tr);
         });
+        // ensure move button state matches any pre-selections
+        updateMoveButtonState();
     }
 
-    // Query open tabs in all windows and annotate with focused state per window
+    // focus an existing tab (bring its window forward and activate the tab)
+    function focusTab(tabId, windowId) {
+        if (!chrome.windows || !chrome.tabs) return;
+        chrome.windows.update(windowId, { focused: true }, function () {
+            chrome.tabs.update(tabId, { active: true });
+        });
+    }
+
+    // Query open tabs in all windows and annotate with focused state + window names (Window 1..N)
     function loadOpenTabs() {
         if (!chrome.windows || !chrome.windows.getAll) {
             renderTabsRows([]);
+            if (totalTabsCount) totalTabsCount.textContent = 'Total: 0 tabs';
             return;
         }
-        // Get all windows populated with their tabs, derive a friendly window name
         chrome.windows.getAll({ populate: true }, function (wins) {
             const winNames = {};
-            // derive name per window: prefer active tab title, fallback to "Window N"
             (wins || []).forEach(function (w, idx) {
-                let name = `Window ${idx + 1}`;
-                if (w.tabs && w.tabs.length) {
-                    const active = w.tabs.find(t => t.active) || w.tabs[0];
-                    if (active && active.title) {
-                        name = active.title;
-                    }
-                }
-                winNames[w.id] = name;
+                winNames[w.id] = `Window ${idx + 1}`;
             });
 
-            // collect all tabs from all windows and attach window name + focused flag
             const tabs = [];
             (wins || []).forEach(function (w) {
                 (w.tabs || []).forEach(function (t) {
@@ -250,44 +294,89 @@
             });
 
             currentTabs = tabs;
+            if (totalTabsCount) totalTabsCount.textContent = `Total: ${tabs.length} tabs`;
             renderTabsRows(currentTabs);
+            // populate moveTargetWindow with available windows
+            if (moveTargetWindow) {
+                moveTargetWindow.innerHTML = '';
+                (wins || []).forEach(function (w, idx) {
+                    const opt = document.createElement('option');
+                    opt.value = String(w.id);
+                    opt.textContent = `Window ${idx + 1} (id: ${w.id})`;
+                    moveTargetWindow.appendChild(opt);
+                });
+                updateMoveButtonState();
+            }
         });
     }
 
-    // Add all visible tabs
+    // Add all visible tabs (currentTabs)
     function addAllTabs() {
-        if (!chrome.tabs || !chrome.tabs.query) return;
-        chrome.tabs.query({ currentWindow: true }, function (tabs) {
-            const usable = (tabs || []).filter(t => t && t.url && !t.url.startsWith('chrome://') && !t.url.startsWith('chrome-extension://'));
-            usable.forEach(function (tab) {
-                const urlItem = { url: tab.url, data: { title: tab.title, timestamp: new Date().getTime() } };
-                const addHandler = readLaterObject.addURLHandler(function () { /* no-op */ }, function () { /* exists */ });
-                addHandler(urlItem);
-            });
-            // refresh both lists
+        if (!currentTabs || !currentTabs.length) return;
+        currentTabs.forEach(function (tab) {
+            const urlItem = { url: tab.url, data: { title: tab.title, timestamp: Date.now() } };
+            const addHandler = readLaterObject.addURLHandler(function () { /* success -> ignore inline */ }, function () { /* exists */ });
+            addHandler(urlItem);
+        });
+        // mark UI and refresh
+        loadOpenTabs();
+        loadAndRender();
+        updateSavedCount();
+    }
+
+    // Drop duplicate tabs (close duplicates keeping first occurrence). Duplicates determined by URL without fragment.
+    function dropDuplicates() {
+        if (!currentTabs || !currentTabs.length) return;
+        const seen = new Map();
+        const toClose = [];
+        currentTabs.forEach(tab => {
+            const key = normalizeUrlForDup(tab.url);
+            if (!seen.has(key)) seen.set(key, tab.id);
+            else {
+                // keep first, close this duplicate
+                toClose.push(tab.id);
+            }
+        });
+        if (!toClose.length) return;
+        if (!chrome.tabs || !chrome.tabs.remove) return;
+        chrome.tabs.remove(toClose, function () {
+            // refresh after closing
             loadOpenTabs();
-            loadAndRender();
         });
     }
 
-    // Load items, optionally filter by query, sort by timestamp desc and render
+    // Move selected tabs to target window id
+    function moveSelectedTabs() {
+        if (!selectedTabIds.size) return;
+        const targetId = moveTargetWindow ? Number(moveTargetWindow.value) : null;
+        if (!targetId || !chrome.tabs || !chrome.tabs.move) return;
+        const ids = Array.from(selectedTabIds);
+        // move API can accept array of ids, but behavior differs; move them to end of target window
+        chrome.tabs.move(ids, { windowId: targetId, index: -1 }, function () {
+            // clear selection and reload
+            selectedTabIds.clear();
+            updateMoveButtonState();
+            loadOpenTabs();
+        });
+    }
+
+    // Load saved links, optionally filter by query, sort by timestamp desc and render
     function loadAndRender() {
         readLaterObject.getValidSyncItems(function (items) {
-            // sort newest first
-            items.sort(function (a, b) {
-                return b.timestamp - a.timestamp;
-            });
-
-            const q = (searchInput.value || '').trim().toLowerCase();
-            const filtered = q
-                ? items.filter(function (it) {
+            // items: array of { key, title, timestamp } or similar shape used earlier.
+            // allow searchInput to filter by title/url
+            const q = (searchInput && searchInput.value || '').trim().toLowerCase();
+            let rows = items || [];
+            if (q) {
+                rows = rows.filter(it => {
                     const title = (it.title || '').toLowerCase();
                     const url = (it.key || '').toLowerCase();
                     return title.indexOf(q) !== -1 || url.indexOf(q) !== -1;
-                })
-                : items;
-
-            renderRows(filtered);
+                });
+            }
+            // sort by timestamp desc
+            rows.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+            renderRows(rows);
         });
     }
 
@@ -304,115 +393,51 @@
         });
     }
 
-    // Update options meta info: only show max badge count. CTA is a static link.
-    function updateOptionsMeta() {
-        try {
-            const max = readLaterObject.getMaxButtonItems && readLaterObject.getMaxButtonItems();
-            maxItemsSpan.textContent = (typeof max !== 'undefined') ? String(max) : 'n/a';
-        } catch (e) {
-            maxItemsSpan.textContent = 'n/a';
-        }
-    }
-
-    // Render human-friendly permission list and current granted state
-    function renderPermissions() {
-        const manifest = chrome.runtime.getManifest();
-        const declared = manifest.permissions || [];
-        const hostDeclared = manifest.host_permissions || manifest.host_permissions || [];
-
-        // friendly descriptions for common permissions (extend as needed)
-        const permDescriptions = {
-            'storage': 'Access chrome.storage to save and sync links across browsers.',
-            'activeTab': 'Temporary access to the active tab when user invokes the extension (e.g. Add current page).',
-            'identity': 'Access basic profile information (email) for the signed-in Chrome account.',
-            'tabs': 'Access tab information (URLs, titles) when granted.',
-            'alarms': 'Schedule periodic tasks using the alarms API.',
-            'notifications': 'Show system notifications.',
-        };
-
-        function permItemHtml(name, desc, granted, type) {
-            const s = granted ? 'granted' : 'not-granted';
-            return `<li class="perm-item ${s}"><strong>${name}</strong> <span class="perm-type">[${type}]</span>
-                        <div class="perm-desc">${desc}</div>
-                        <div class="perm-status">${granted ? 'Granted' : 'Not granted'}</div>
-                    </li>`;
-        }
-
-        // First get runtime-granted permissions
-        chrome.permissions.getAll(function (granted) {
-            const grantedSet = new Set((granted.permissions || []).concat(granted.origins || []));
-            const listEl = document.getElementById('permList');
-            if (!listEl) return;
-            listEl.innerHTML = '';
-
-            // render declared simple permissions
-            declared.forEach(function (p) {
-                const desc = permDescriptions[p] || 'No detailed description available.';
-                const isGranted = grantedSet.has(p);
-                listEl.insertAdjacentHTML('beforeend', permItemHtml(p, desc, isGranted, 'permission'));
-            });
-
-            // render host permissions (origins)
-            hostDeclared.forEach(function (h) {
-                const desc = `Access to host: ${h} (used for favicons or fetching resources on matching pages).`;
-                const isGranted = grantedSet.has(h) || (grantedSet.has('<all_urls>') && h === '<all_urls>');
-                listEl.insertAdjacentHTML('beforeend', permItemHtml(h, desc, isGranted, 'host'));
-            });
-
-            // If no declared permissions, show a helpful message
-            if (declared.length === 0 && hostDeclared.length === 0) {
-                listEl.innerHTML = '<li class="perm-item">No permissions declared in manifest.</li>';
-            }
+    // Update saved count display: x/MAX_BADGE_COUNT
+    function updateSavedCount() {
+        const countsFetcher = readLaterObject.getCountsHandler(function (count) {
+            const max = (readLaterObject.getMaxButtonItems && readLaterObject.getMaxButtonItems()) || '...';
+            if (savedCountEl) savedCountEl.textContent = `${count}/${max}`;
         });
+        if (countsFetcher) countsFetcher();
     }
 
-    // CTA link: open Chrome People / Sync settings to allow sign-in & enable sync
+    // Permissions rendering already present elsewhere in file; assume renderPermissions() exists
+    // CTA link opens people settings
     enableSyncLink.addEventListener('click', function (e) {
         e.preventDefault();
-        try {
-            chrome.tabs.create({ url: 'chrome://settings/people' });
-        } catch (err) {
-            window.open('chrome://settings/people', '_blank');
-        }
+        try { chrome.tabs.create({ url: 'chrome://settings/people' }); }
+        catch (err) { window.open('chrome://settings/people', '_blank'); }
     });
 
-    // Event listeners
-    searchInput.addEventListener('input', function () {
-        loadAndRender();
-    });
-
-    if (searchTabsInput) {
-        searchTabsInput.addEventListener('input', function () {
-            renderTabsRows(currentTabs);
+    // wire buttons/listeners
+    if (clearSavedBtn) {
+        clearSavedBtn.addEventListener('click', function () {
+            const clearHandler = readLaterObject.clearAllHandler(function () {
+                loadAndRender();
+                loadOpenTabs();
+                // refresh permissions if present
+                if (typeof renderPermissions === 'function') renderPermissions();
+                updateSavedCount();
+            });
+            clearHandler();
         });
     }
 
-    // keep options meta updated on load and whenever storage changes
-    document.addEventListener('DOMContentLoaded', function () {
-        updateOptionsMeta();
-        renderPermissions();
-        loadAndRender();
-        loadOpenTabs();
-    });
+    if (searchInput) searchInput.addEventListener('input', loadAndRender);
+    if (downloadBtn) downloadBtn.addEventListener('click', downloadJSON);
 
-    refreshBtn.addEventListener('click', function () {
-        updateOptionsMeta();
-        renderPermissions();
-        loadAndRender();
-        loadOpenTabs();
-    });
-
-    downloadBtn.addEventListener('click', downloadJSON);
-
+    if (searchTabsInput) searchTabsInput.addEventListener('input', function () { renderTabsRows(currentTabs); });
     if (refreshTabsBtn) refreshTabsBtn.addEventListener('click', loadOpenTabs);
     if (addAllTabsBtn) addAllTabsBtn.addEventListener('click', addAllTabs);
+    if (dropDuplicatesBtn) dropDuplicatesBtn.addEventListener('click', dropDuplicates);
+    if (moveTabsBtn) moveTabsBtn.addEventListener('click', moveSelectedTabs);
 
     // Listen to storage changes to keep the table in sync
     chrome.storage.onChanged.addListener(function () {
-        updateOptionsMeta();
-        renderPermissions();
         loadAndRender();
         loadOpenTabs();
+        updateSavedCount();
     });
 
     // sorting header clicks
@@ -423,7 +448,6 @@
                 const col = h.getAttribute('data-col');
                 if (currentSort.col === col) currentSort.asc = !currentSort.asc;
                 else { currentSort.col = col; currentSort.asc = true; }
-                // update indicators
                 document.querySelectorAll('#tabsTable thead th .sort-indicator').forEach(si => si.textContent = '');
                 const ind = h.querySelector('.sort-indicator');
                 if (ind) ind.textContent = currentSort.asc ? '▲' : '▼';
@@ -434,5 +458,12 @@
 
     setupTabsSorting();
 
-    // Initial load handled above (updateOptionsMeta + loadAndRender + loadOpenTabs)
+    // initial load
+    document.addEventListener('DOMContentLoaded', function () {
+        updateSavedCount();
+        if (typeof renderPermissions === 'function') renderPermissions();
+        loadAndRender();
+        loadOpenTabs();
+    });
+
 })();

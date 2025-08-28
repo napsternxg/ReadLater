@@ -10,18 +10,12 @@
 <body>
     <header>
         <h1>ReadLater — Saved Links</h1>
-        <div class="controls">
-            <input id="searchInput" type="search" placeholder="Search by title or URL..." />
-            <button id="refreshBtn" title="Refresh list">Refresh</button>
-            <button id="downloadBtn" title="Download JSON">Download JSON</button>
-            <button id="clearSavedBtn" title="Clear all saved links">Clear saved links</button>
-        </div>
     </header>
 
-    <!-- options meta: quick CTA to enable Chrome sync and max badge count -->
+    <!-- options meta: quick CTA to enable Chrome sync and saved count -->
     <div id="optionsMeta" aria-hidden="false">
         Sync: <a id="enableSyncLink" class="mini-cta" href="#">Enable sync / Sign in</a>
-        &middot; Max badge count: <span id="maxItems">...</span>
+        &middot;
     </div>
 
     <!-- Permissions: show declared and granted permissions with friendly descriptions -->
@@ -39,38 +33,53 @@
     </section>
 
     <main>
-        <table id="linksTable" aria-label="Saved links">
-            <thead>
-                <tr>
-                    <th>Fav</th>
-                    <th>Title</th>
-                    <th>URL</th>
-                    <th>Added</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                <!-- rows inserted by tab.js -->
-            </tbody>
-        </table>
+        <section id="linksSection" class="data-section">
+            <h2 class="section-title">ReadLater Links</h2>
+            <div class="section-controls links-controls">
+                <input id="searchInput" type="search" placeholder="Search by title or URL..." />
+                <button id="refreshBtn" title="Refresh list">Refresh</button>
+                <button id="downloadBtn" title="Download JSON">Download JSON</button>
+                <button id="clearSavedBtn" title="Clear all saved links">Clear saved links</button>
+                <span class="count-badge saved-count">URLs Saved:<span id="savedCount">...</span></span>
+            </div>
+
+            <table id="linksTable" class="section-table" aria-label="Saved links">
+                <thead>
+                    <tr>
+                        <th>Actions</th>
+                        <th>Title</th>
+                        <th>URL</th>
+                        <th>Added</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- rows inserted by tab.js -->
+                </tbody>
+            </table>
+        </section>
 
         <div id="emptyState" class="hidden">No links saved.</div>
 
-        <!-- Open Tabs: list tabs in current window and allow adding them -->
-        <section id="openTabsSection" aria-label="Open tabs">
-            <div class="tabs-controls">
-                <input id="searchTabsInput" type="search" placeholder="Search open tabs (title, URL)..." />
+        <!-- Open Tabs: list tabs in all windows and allow adding/closing them -->
+        <section id="openTabsSection" class="data-section" aria-label="Open tabs">
+            <h2 class="section-title">Already Opened Tabs</h2>
+            <div class="section-controls tabs-controls">
+                <input id="searchTabsInput" type="search" placeholder="Search open tabs (title, URL, window)..." />
                 <button id="refreshTabsBtn" title="Refresh open tabs">Refresh Tabs</button>
                 <button id="addAllTabsBtn" title="Add all open tabs">Add All Tabs</button>
+                <button id="dropDuplicatesBtn" title="Close duplicate tabs (keep one per URL)">Drop Duplicates</button>
+                <label for="moveTargetWindow" class="visually-hidden">Move selected tabs to window</label>
+                <select id="moveTargetWindow" aria-label="Target window for moving tabs"></select>
+                <button id="moveTabsBtn" title="Move selected tabs" disabled>Move</button>
+                <span id="totalTabsCount" class="count-badge tabs-count">Total: 0 tabs</span>
             </div>
-            <table id="tabsTable" aria-label="Open browser tabs">
+            <table id="tabsTable" class="section-table" aria-label="Open browser tabs">
                 <thead>
                     <tr>
-                        <th>Fav</th>
+                        <th>Actions</th>
                         <th class="sortable" data-col="title">Title <span class="sort-indicator"></span></th>
                         <th class="sortable" data-col="url">URL <span class="sort-indicator"></span></th>
                         <th class="sortable" data-col="window">Window <span class="sort-indicator"></span></th>
-                        <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>

@@ -4,6 +4,16 @@ body {
     color: #222;
 }
 
+/* shared layout variables for easy future tweaks */
+:root {
+    --section-gap: 8px;
+    --section-padding: 6px;
+    --section-padding-large: 8px;
+    --section-shadow: 0 1px 0 rgba(0, 0, 0, 0.04);
+    --badge-bg: #e2e8f0;
+    --badge-color: #0f172a;
+}
+
 header {
     display: flex;
     align-items: center;
@@ -19,7 +29,7 @@ header h1 {
 
 .controls {
     display: flex;
-    gap: 8px;
+    gap: var(--section-gap);
     align-items: center;
 }
 
@@ -39,6 +49,24 @@ table {
     width: 100%;
     border-collapse: collapse;
     margin-top: 8px;
+}
+
+/* use fixed table layout so column widths are stable and wrapping behaves predictably */
+#linksTable,
+#tabsTable {
+    table-layout: fixed;
+}
+
+/* shared table class for sections */
+.section-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.section-title {
+    margin: 12px 0 6px 0;
+    font-size: 16px;
+    color: #333;
 }
 
 th,
@@ -78,6 +106,19 @@ td a:hover {
     color: #fff;
     border-radius: 3px;
     cursor: pointer;
+}
+
+.icon-btn {
+    vertical-align: middle;
+    display: inline-block;
+    width: 18px;
+    height: 18px;
+    pointer-events: none;
+}
+
+.action-btn:hover .icon-btn,
+.tab-action-btn:hover .icon-btn {
+    filter: brightness(1.2) drop-shadow(0 0 2px #fff2);
 }
 
 .action-btn:hover {
@@ -255,3 +296,223 @@ td a:hover {
     color: #666;
     font-style: italic;
 }
+
+/* small adjustments for consolidated title column and actions-first layout */
+#linksTable td .title-cell,
+#tabsTable td .title-cell {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+#linksTable td .title-cell .title-text,
+#tabsTable td .title-cell .title-text {
+    /* allow wrapping for long titles */
+    max-width: 100%;
+    overflow: visible;
+    text-overflow: unset;
+    white-space: normal;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+}
+
+/* column width hints - keeps Actions and Added small, Title and URL consume the middle area */
+#linksTable th:nth-child(1),
+#tabsTable th:nth-child(1),
+#linksTable td:nth-child(1),
+#tabsTable td:nth-child(1) {
+    width: 4%;
+    /* actions */
+}
+
+#linksTable th:nth-child(2),
+#tabsTable th:nth-child(2),
+#linksTable td:nth-child(2),
+#tabsTable td:nth-child(2) {
+    width: 44%;
+    /* title */
+}
+
+#linksTable th:nth-child(3),
+#tabsTable th:nth-child(3),
+#linksTable td:nth-child(3),
+#tabsTable td:nth-child(3) {
+    width: 42%;
+    /* url */
+}
+
+/* ensure URL cells break nicely and don't overflow */
+#linksTable td:nth-child(3) a,
+#tabsTable td:nth-child(3) a {
+    display: inline-block;
+    max-width: 100%;
+    word-break: break-all;
+    /* allow breaking long URLs */
+    overflow-wrap: anywhere;
+    white-space: normal;
+}
+
+
+
+#tabsTable td:nth-child(4) {
+    width: 140px;
+    /* window column */
+}
+
+.action-btn {
+    margin: 6px;
+}
+
+/* sticky layout variables and styles ------------------------------------------------- */
+:root {
+    /* reasonable default heights (can be tuned) */
+    /* slightly smaller header and clearer stacking: optionsMeta is non-sticky so exclude it from offsets */
+    --header-h: 50px;
+    --options-meta-h: 36px;
+    --tabs-controls-h: 46px;
+    /* controls should stick directly beneath the header */
+    --controls-top: var(--header-h);
+    /* table thead should sit below header + controls (links or tabs) */
+    --thead-top: calc(var(--header-h) + var(--tabs-controls-h));
+}
+
+/* make main header sticky so search bar stays visible */
+header {
+    position: sticky;
+    top: 0;
+    z-index: 110;
+    background: #fff;
+    /* ensure opaque background when stuck */
+    /* small vertical padding so height matches the var; keeps layout stable */
+    padding-top: 8px;
+    padding-bottom: 8px;
+    box-shadow: 0 1px 0 rgba(0, 0, 0, 0.04);
+}
+
+/* options meta (small status row just under header) */
+#optionsMeta {
+    position: static;
+    /* disable sticky behavior */
+    background: #f0f8ff;
+}
+
+/* shared controls for sections (links, tabs) */
+.section-controls {
+    display: flex;
+    gap: var(--section-gap);
+    align-items: center;
+    background: #fff;
+    padding: var(--section-padding) 0;
+    box-shadow: var(--section-shadow);
+}
+
+.visually-hidden {
+    position: absolute !important;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+#moveTargetWindow {
+    padding: 4px 6px;
+}
+
+#moveTabsBtn {
+    padding: 6px 10px;
+}
+
+/* tabs-controls keeps its sticky positioning but reuses shared styles */
+.tabs-controls {
+    position: sticky;
+    top: var(--header-h);
+    z-index: 104;
+}
+
+/* links-controls sticky within its section and reuses shared styles */
+.links-controls {
+    position: sticky;
+    top: var(--header-h);
+    z-index: 106;
+    padding: var(--section-padding-large) 0;
+    margin-bottom: var(--section-gap);
+}
+
+/* make the links section the containing block so .links-controls sticky behavior is bounded to it */
+#linksSection {
+    position: relative;
+}
+
+/* ensure the search input stays visible above table rows */
+#searchInput {
+    position: relative;
+    z-index: 115;
+}
+
+/* make table headers sticky so they remain visible while scrolling */
+#tabsTable thead th,
+#linksTable thead th {
+    position: sticky;
+    top: var(--thead-top);
+    z-index: 100;
+    background: #fafafa;
+    /* match existing th background */
+    box-shadow: 0 1px 0 rgba(0, 0, 0, 0.03);
+}
+
+/* ensure header backgrounds clip correctly when sticky */
+#tabsTable thead th,
+#tabsTable thead td,
+#linksTable thead th,
+#linksTable thead td {
+    background-clip: padding-box;
+}
+
+/* badge style for tab counts / URLs saved. Targets common IDs/classes and a generic .count-badge */
+.count-badge,
+#savedCount,
+#tabCount,
+.tab-count,
+#urlsSaved,
+.urls-saved {
+    display: inline-block;
+    min-width: 28px;
+    padding: 2px 8px;
+    margin-left: 8px;
+    background: var(--badge-bg);
+    color: var(--badge-color);
+    font-weight: 700;
+    font-size: 12px;
+    border-radius: 999px;
+    text-align: center;
+    vertical-align: middle;
+    box-shadow: var(--section-shadow);
+}
+
+/* when inside a flex container, push the badge to the far right */
+.count-badge {
+    margin-left: auto;
+}
+
+/* smaller variant */
+.count-badge.small {
+    min-width: 20px;
+    padding: 2px 6px;
+    font-size: 11px;
+}
+
+/* responsive tweak: reduce assumed heights on small screens to avoid overlap */
+@media (max-width: 600px) {
+    :root {
+        --header-h: 48px;
+        --options-meta-h: 36px;
+        --tabs-controls-h: 44px;
+    }
+}
+
+/* existing styles kept below (ensure these remain in file) */
+/* body, header, table, buttons etc. should be present in the rest of your stylesheet */
