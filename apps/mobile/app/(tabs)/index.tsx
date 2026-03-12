@@ -6,6 +6,7 @@ import { LinkCard } from '@/components/LinkCard';
 import { getAllLinks, getLinksByTag, getLinksByDomain, deleteLink, Link as DbLink, getTagsForLink } from '../../db/queries';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Colors } from '@/constants/theme';
+import { showConfirm } from '../../utils/alert';
 
 type LinkWithTags = DbLink & { tags: string[] };
 
@@ -81,13 +82,10 @@ export default function HomeScreen() {
   };
 
   const handleDelete = async (id: string) => {
-    Alert.alert('Delete Link', 'Are you sure you want to delete this link?', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: async () => {
-        await deleteLink(id);
-        fetchLinks();
-      }},
-    ]);
+    showConfirm('Delete Link', 'Are you sure you want to delete this link?', async () => {
+      await deleteLink(id);
+      fetchLinks();
+    });
   };
 
   const onAddLink = () => {

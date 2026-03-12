@@ -5,6 +5,7 @@ let db: SQLite.SQLiteDatabase | null = null;
 export const getDb = async () => {
   if (db) return db;
   db = await SQLite.openDatabaseAsync('readlater.db');
+  await db.execAsync('PRAGMA foreign_keys = ON;');
   return db;
 };
 

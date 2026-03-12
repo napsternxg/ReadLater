@@ -1,8 +1,10 @@
-import { StyleSheet, View, Text, TouchableOpacity, Alert, Appearance, ScrollView } from 'react-native';
-import * as FileSystem from 'expo-file-system';
+import { StyleSheet, View, Text, TouchableOpacity, Alert, Appearance, ScrollView, Platform } from 'react-native';
+import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
-import { getAllLinksWithTags, clearAllData } from '../../db/queries';
+import * as DocumentPicker from 'expo-document-picker';
+import { getAllLinksWithTags, clearAllData, importData } from '../../db/queries';
 import { useTheme } from '../../context/ThemeContext';
+import { showConfirm, showAlert } from '../../utils/alert';
 import { Colors } from '@/constants/theme';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 
@@ -14,8 +16,20 @@ export default function SettingsScreen() {
     try {
       const linksWithTags = await getAllLinksWithTags();
       const content = JSON.stringify(linksWithTags, null, 2);
-      const fileUri = `${FileSystem.cacheDirectory}readlater-export.json`;
-      
+      const filename = 'readlater-export.json';
+
+      if (Platform.OS === 'web') {
+        const blob = new Blob([content], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        link.click();
+        URL.revokeObjectURL(url);
+        return;
+      }
+
+      const fileUri = `${(FileSystem as any).documentDirectory || (FileSystem as any).cacheDirectory}${filename}`;
       await FileSystem.writeAsStringAsync(fileUri, content, {
         encoding: 'utf8',
       });
@@ -26,22 +40,63 @@ export default function SettingsScreen() {
           dialogTitle: 'Export ReadLater Data',
         });
       } else {
-        Alert.alert('Sharing unavailable', 'Cannot share export file on this device');
+        showAlert('Sharing unavailable', 'Cannot share export file on this device');
       }
     } catch (e) {
       console.error(e);
-      Alert.alert('Error', 'Failed to export data');
+      showAlert('Error', 'Failed to export data');
+    }
+  };
+
+  const handleImport = async () => {
+    try {
+      if (Platform.OS === 'web') {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'application/json';
+        input.onchange = async (e: any) => {
+          const file = e.target.files[0];
+          if (!file) return;
+          const reader = new FileReader();
+          reader.onload = async (event: any) => {
+            try {
+              const data = JSON.parse(event.target.result);
+              await importData(data);
+              showAlert('Success', 'Data imported successfully');
+            } catch (err) {
+              showAlert('Error', 'Invalid backup file');
+            }
+          };
+          reader.readAsText(file);
+        };
+        input.click();
+      } else {
+        const result = await DocumentPicker.getDocumentAsync({
+          type: 'application/json',
+          copyToCacheDirectory: true,
+        });
+
+        if (!result.canceled && result.assets && result.assets.length > 0) {
+          const fileUri = result.assets[0].uri;
+          const content = await FileSystem.readAsStringAsync(fileUri, {
+            encoding: 'utf8',
+          });
+          const data = JSON.parse(content);
+          await importData(data);
+          showAlert('Success', 'Data imported successfully');
+        }
+      }
+    } catch (err) {
+      console.error(err);
+      showAlert('Error', 'Failed to import data');
     }
   };
 
   const handleClearData = () => {
-    Alert.alert('Clear Data', 'Are you sure you want to delete all saved links, tags and domains? This is irreversible.', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Clear All', style: 'destructive', onPress: async () => {
-        await clearAllData();
-        Alert.alert('Success', 'All data has been cleared');
-      }}
-    ]);
+    showConfirm('Clear Data', 'Are you sure you want to delete all saved links, tags and domains? This is irreversible.', async () => {
+      await clearAllData();
+      showAlert('Success', 'All data has been cleared');
+    });
   };
 
   const themeOptions = [
@@ -82,6 +137,13 @@ export default function SettingsScreen() {
           <View style={styles.settingLeft}>
             <IconSymbol name="arrow.down.doc" size={20} color={theme.accent} />
             <Text style={[styles.settingText, { color: theme.text }]}>Export Data (JSON)</Text>
+          </View>
+          <IconSymbol name="chevron.right" size={16} color={theme.icon} />
+        </TouchableOpacity>
+        <TouchableOpacity style={[styles.settingRow, { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.border }]} onPress={handleImport}>
+          <View style={styles.settingLeft}>
+            <IconSymbol name="arrow.up.doc" size={20} color={theme.accent} />
+            <Text style={[styles.settingText, { color: theme.text }]}>Import Data (JSON)</Text>
           </View>
           <IconSymbol name="chevron.right" size={16} color={theme.icon} />
         </TouchableOpacity>

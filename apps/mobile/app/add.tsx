@@ -7,6 +7,7 @@ import { insertLink, addTagToLink, Link as DbLink, getAllTagNames, getLinkByUrl 
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Colors } from '@/constants/theme';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { showAlert } from '../utils/alert';
 
 export default function AddLinkScreen() {
   const router = useRouter();
@@ -46,7 +47,7 @@ export default function AddLinkScreen() {
     // Check for duplicates
     const existing = await getLinkByUrl(fullUrl);
     if (existing) {
-      Alert.alert('Duplicate Link', 'This link is already in your list.');
+      showAlert('Duplicate Link', 'This link is already in your list.');
       return;
     }
 

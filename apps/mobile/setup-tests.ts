@@ -50,11 +50,15 @@ jest.mock('expo-router', () => ({
 }));
 
 // Mock expo-file-system
-jest.mock('expo-file-system', () => ({
+const mockFs = {
   documentDirectory: '/mock/documents/',
+  cacheDirectory: '/mock/cache/',
   writeAsStringAsync: jest.fn().mockResolvedValue(undefined),
+  readAsStringAsync: jest.fn().mockResolvedValue('[]'),
   EncodingType: { UTF8: 'utf8' },
-}));
+};
+jest.mock('expo-file-system', () => mockFs);
+jest.mock('expo-file-system/legacy', () => mockFs);
 
 // Mock expo-sharing
 jest.mock('expo-sharing', () => ({
@@ -84,6 +88,7 @@ jest.mock('./db/queries', () => ({
   getDomainsWithCount: jest.fn().mockResolvedValue([]),
   getAllTagNames: jest.fn().mockResolvedValue([]),
   clearAllData: jest.fn().mockResolvedValue(undefined),
+  importData: jest.fn().mockResolvedValue(undefined),
 }));
 
 // Mock db/index

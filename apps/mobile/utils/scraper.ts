@@ -21,20 +21,25 @@ export const fetchLinkMetadata = async (url: string): Promise<LinkMetadata> => {
    } catch (e) {}
 
    try {
+     console.log(`Scraping URL: ${url}`);
      const response = await fetch(url, {
        headers: {
-         'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 13_2_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.0.3 Mobile/15E148 Safari/604.1'
+         'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
+         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
        }
      });
      
-     if (!response.ok) throw new Error('Failed to fetch');
+     if (!response.ok) {
+       console.warn(`Fetch failed for ${url} with status ${response.status}`);
+       throw new Error(`Fetch failed: ${response.status}`);
+     }
      const html = await response.text();
      
      const getMeta = (propertyOrName: string) => {
-       // Matches property="og:image" content="..." or name="twitter:image" content="..."
+       // Even more flexible pattern: matches <meta ... property="..." ... content="..." ...> in any order
        const patterns = [
-         new RegExp(`<meta [^>]*?(?:property|name)=["']${propertyOrName}["'][^>]*?content=["']([^"']+)["']`, 'i'),
-         new RegExp(`<meta [^>]*?content=["']([^"']+)["'][^>]*?(?:property|name)=["']${propertyOrName}["']`, 'i')
+         new RegExp(`<meta[^>]*?(?:property|name)=["']${propertyOrName}["'][^>]*?content=["']([^"']+)["']`, 'i'),
+         new RegExp(`<meta[^>]*?content=["']([^"']+)["'][^>]*?(?:property|name)=["']${propertyOrName}["']`, 'i')
        ];
        
        for (const pattern of patterns) {
@@ -45,9 +50,10 @@ export const fetchLinkMetadata = async (url: string): Promise<LinkMetadata> => {
      };
 
      const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
-     const title = titleMatch ? decodeHtml(titleMatch[1]) : getMeta('og:title') || getMeta('twitter:title');
+     const title = titleMatch ? decodeHtml(titleMatch[1]) : getMeta('og:title') || getMeta('twitter:title') || getMeta('title');
      
-     let image_url = getMeta('og:image') || getMeta('twitter:image');
+     let image_url = getMeta('og:image') || getMeta('twitter:image') || getMeta('thumbnail');
+
      
      if (!image_url) {
        // Fallback to high-res icons

@@ -96,7 +96,18 @@ export function LinkCard({ link, tags = [], compact = false, onTagPress, onDelet
       activeOpacity={0.7}
     >
       {link.image_url ? (
-        <Image source={{ uri: link.image_url }} style={styles.image} contentFit="cover" />
+        <Image 
+          source={{ uri: link.image_url }} 
+          style={styles.image} 
+          contentFit="cover" 
+          placeholder={{ blurhash: 'L6PZf6ayfQfQfQfQfQfQfQfQfQfQ' }}
+          transition={200}
+          cachePolicy="memory-disk"
+          priority="high"
+          onError={() => {
+            // Silently fail, let fallback UI stay
+          }}
+        />
       ) : null}
 
       <View style={styles.content}>

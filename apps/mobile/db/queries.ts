@@ -60,7 +60,10 @@ export const getLinksByDomain = async (domain: string): Promise<Link[]> => {
 
 export const deleteLink = async (id: string) => {
   const db = await getDb();
-  await db.runAsync('DELETE FROM links WHERE id = ?', [id]);
+  await db.execAsync(`
+    DELETE FROM link_tags WHERE link_id = '${id}';
+    DELETE FROM links WHERE id = '${id}';
+  `);
 };
 
 export const getTagsWithCount = async () => {
@@ -142,5 +145,50 @@ export const getAllLinksWithTags = async (): Promise<(Link & { tags: string[] })
 
 export const clearAllData = async () => {
   const db = await getDb();
-  await db.execAsync('DELETE FROM link_tags; DELETE FROM links; DELETE FROM tags;');
+  await db.execAsync(`
+    DELETE FROM link_tags;
+    DELETE FROM links;
+    DELETE FROM tags;
+  `);
+};
+
+export const importData = async (data: any[]) => {
+  const db = await getDb();
+  
+  // Use a transaction for performance and consistency
+  await db.withTransactionAsync(async () => {
+    for (const item of data) {
+      const linkId = item.id || Math.random().toString(36).substring(2, 9);
+      
+      // 1. Insert link (ignore if exists)
+      await db.runAsync(
+        'INSERT OR IGNORE INTO links (id, url, title, image_url, domain, created_at) VALUES (?, ?, ?, ?, ?, ?)',
+        [linkId, item.url, item.title, item.image_url, item.domain, item.created_at || Date.now()]
+      );
+
+      // 2. Process tags
+      if (item.tags && Array.isArray(item.tags)) {
+        for (const tagName of item.tags) {
+          if (!tagName) continue;
+          
+          // Ensure tag exists
+          let tagId: string;
+          const existingTag = await db.getFirstAsync<{ id: string }>('SELECT id FROM tags WHERE name = ?', [tagName]);
+          
+          if (existingTag) {
+            tagId = existingTag.id;
+          } else {
+            tagId = Math.random().toString(36).substring(2, 9);
+            await db.runAsync('INSERT INTO tags (id, name) VALUES (?, ?)', [tagId, tagName]);
+          }
+
+          // Link the tag
+          await db.runAsync(
+            'INSERT OR IGNORE INTO link_tags (link_id, tag_id) VALUES (?, ?)',
+            [linkId, tagId]
+          );
+        }
+      }
+    }
+  });
 };
