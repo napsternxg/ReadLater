@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "ReadLater",
+    "name": "Read Later",
     "slug": "readlater",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -13,12 +13,6 @@
     },
     "android": {
       "package": "com.napsternxg.readlater",
-      "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
-        "monochromeImage": "./assets/images/android-icon-monochrome.png"
-      },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false
     },
@@ -52,6 +46,13 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "build": {},
+        "projectId": "a28b1407-0a80-4865-98c1-0892996d5823"
+      }
     }
   }
 }

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, TextInput, TouchableOpacity, ScrollView, ActivityIndicator, KeyboardAvoidingView, Platform, Alert } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Image } from 'expo-image';
 import { fetchLinkMetadata } from '../utils/scraper';
 import { insertLink, addTagToLink, Link as DbLink, getAllTagNames, getLinkByUrl } from '../db/queries';
@@ -11,6 +11,7 @@ import { showAlert } from '../utils/alert';
 
 export default function AddLinkScreen() {
   const router = useRouter();
+  const { url: paramUrl } = useLocalSearchParams<{ url?: string }>();
   const colorScheme = useColorScheme() ?? 'light';
   const theme = Colors[colorScheme];
   const [url, setUrl] = useState('');
@@ -24,7 +25,23 @@ export default function AddLinkScreen() {
 
   useEffect(() => {
     getAllTagNames().then(setAllTags).catch(console.error);
-  }, []);
+    
+    if (paramUrl) {
+      setUrl(paramUrl);
+      handleFetchPreviewDirectly(paramUrl);
+    }
+  }, [paramUrl]);
+
+  const handleFetchPreviewDirectly = async (targetUrl: string) => {
+    setLoading(true);
+    let fullUrl = targetUrl.toLowerCase().startsWith('http') ? targetUrl : `https://${targetUrl}`;
+    
+    const meta = await fetchLinkMetadata(fullUrl);
+    setTitle(meta.title || fullUrl);
+    setImageUrl(meta.image_url || '');
+    setDomain(meta.domain || '');
+    setLoading(false);
+  };
 
   const handleFetchPreview = async () => {
     if (!url) return;

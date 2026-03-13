@@ -6,6 +6,8 @@ import 'react-native-reanimated';
 import { useEffect, useState } from 'react';
 import { initDb } from '../db';
 import { ThemeProvider, useTheme } from '../context/ThemeContext';
+import { ShareIntentProvider, useShareIntent } from 'expo-share-intent';
+import { useRouter } from 'expo-router';
 
 export const unstable_settings = {
   anchor: '(tabs)',
@@ -16,6 +18,18 @@ SplashScreen.preventAutoHideAsync();
 function RootLayoutContent() {
   const { colorScheme } = useTheme();
   const [dbReady, setDbReady] = useState(false);
+
+  const { hasShareIntent, shareIntent, resetShareIntent, error } = useShareIntent();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (hasShareIntent && shareIntent.value && shareIntent.type === 'text') {
+      // Small delay to ensure navigation is ready
+      const url = shareIntent.value;
+      resetShareIntent();
+      router.push({ pathname: '/add', params: { url } });
+    }
+  }, [hasShareIntent, shareIntent, router]);
 
   useEffect(() => {
     initDb()
@@ -45,7 +59,9 @@ function RootLayoutContent() {
 export default function RootLayout() {
   return (
     <ThemeProvider>
-      <RootLayoutContent />
+      <ShareIntentProvider>
+        <RootLayoutContent />
+      </ShareIntentProvider>
     </ThemeProvider>
   );
 }

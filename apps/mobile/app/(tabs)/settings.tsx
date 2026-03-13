@@ -1,4 +1,4 @@
-import { StyleSheet, View, Text, TouchableOpacity, Alert, Appearance, ScrollView, Platform } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, Alert, Appearance, ScrollView, Platform, Linking } from 'react-native';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import * as DocumentPicker from 'expo-document-picker';
@@ -160,11 +160,24 @@ export default function SettingsScreen() {
       <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>About</Text>
       <View style={[styles.sectionCard, { backgroundColor: theme.cardBackground }]}>
         <View style={styles.aboutContent}>
-          <Text style={[styles.appName, { color: theme.text }]}>ReadLater</Text>
+          <Text style={[styles.appName, { color: theme.text }]}>Read Later</Text>
           <Text style={[styles.appVersion, { color: theme.textSecondary }]}>Version 1.0.0</Text>
           <Text style={[styles.appDescription, { color: theme.textSecondary }]}>
             Save links for later reading. Organize with tags, browse by domain, and find anything instantly with search.
           </Text>
+          
+          <View style={[styles.divider, { backgroundColor: theme.border, marginVertical: 16 }]} />
+          
+          <Text style={[styles.partnerTitle, { color: theme.text }]}>Partner Extension</Text>
+          <TouchableOpacity 
+            onPress={() => Linking.openURL('https://chromewebstore.google.com/detail/read-later/nplngmgdacdfncdkpdomipkehfnbinfa')}
+            style={styles.extensionLink}
+          >
+            <Text style={[styles.extensionText, { color: theme.accent }]}>
+              Get the Read Later Chrome Extension
+            </Text>
+            <IconSymbol name="externaldrive" size={14} color={theme.accent} />
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -249,5 +262,24 @@ const styles = StyleSheet.create({
     fontSize: 14,
     textAlign: 'center',
     lineHeight: 20,
+  },
+  divider: {
+    height: 1,
+    width: '100%',
+  },
+  partnerTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  extensionLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  extensionText: {
+    fontSize: 14,
+    fontWeight: '500',
+    textDecorationLine: 'underline',
   },
 });
