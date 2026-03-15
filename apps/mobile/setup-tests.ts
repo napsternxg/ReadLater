@@ -47,6 +47,7 @@ jest.mock('expo-router', () => ({
   }),
   useFocusEffect: (cb: () => void) => cb(),
   Link: 'Link',
+  Stack: Object.assign(({ children }: any) => children, { Screen: () => null }),
 }));
 
 // Mock expo-file-system
@@ -64,6 +65,18 @@ jest.mock('expo-file-system/legacy', () => mockFs);
 jest.mock('expo-sharing', () => ({
   isAvailableAsync: jest.fn().mockResolvedValue(true),
   shareAsync: jest.fn().mockResolvedValue(undefined),
+}));
+
+// Mock expo-share-intent
+const mockShareIntent = {
+  hasShareIntent: false,
+  shareIntent: { type: 'text', value: '' },
+  resetShareIntent: jest.fn(),
+  error: null,
+};
+jest.mock('expo-share-intent', () => ({
+  ShareIntentProvider: ({ children }: any) => children,
+  useShareIntent: () => mockShareIntent,
 }));
 
 // Mock expo-symbols
@@ -87,6 +100,7 @@ jest.mock('./db/queries', () => ({
   getTagsWithCount: jest.fn().mockResolvedValue([]),
   getDomainsWithCount: jest.fn().mockResolvedValue([]),
   getAllTagNames: jest.fn().mockResolvedValue([]),
+  getLinkByUrl: jest.fn().mockResolvedValue(null),
   clearAllData: jest.fn().mockResolvedValue(undefined),
   importData: jest.fn().mockResolvedValue(undefined),
 }));
@@ -102,6 +116,12 @@ jest.mock('./db', () => ({
   initDb: jest.fn().mockResolvedValue(undefined),
 }));
 
+// Mock ThemeContext
+jest.mock('./context/ThemeContext', () => ({
+  useTheme: () => ({ theme: 'system', colorScheme: 'light', setTheme: jest.fn() }),
+  ThemeProvider: ({ children }: any) => children,
+}));
+
 // Mock react-native-reanimated
 jest.mock('react-native-reanimated', () => {
   const Reanimated = require('react-native-reanimated/mock');
@@ -109,5 +129,17 @@ jest.mock('react-native-reanimated', () => {
   return Reanimated;
 });
 
+// Mock @react-navigation/native
+jest.mock('@react-navigation/native', () => ({
+  ThemeProvider: ({ children }: any) => children,
+  DarkTheme: {},
+  DefaultTheme: {},
+}));
+
+// Mock expo-status-bar
+jest.mock('expo-status-bar', () => ({
+  StatusBar: () => null,
+}));
+
 // Export mocks for test access
-export { mockRouter };
+export { mockRouter, mockShareIntent };

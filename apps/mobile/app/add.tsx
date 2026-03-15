@@ -25,8 +25,11 @@ export default function AddLinkScreen() {
 
   useEffect(() => {
     getAllTagNames().then(setAllTags).catch(console.error);
-    
-    if (paramUrl) {
+  }, []);
+
+  useEffect(() => {
+    if (paramUrl && paramUrl !== url) {
+      console.log('New param URL detected, filling and fetching:', paramUrl);
       setUrl(paramUrl);
       handleFetchPreviewDirectly(paramUrl);
     }

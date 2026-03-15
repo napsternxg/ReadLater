@@ -9,7 +9,11 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.napsternxg.readlater",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "package": "com.napsternxg.readlater",
@@ -38,7 +42,7 @@
         "expo-share-intent",
         {
           "ios": {
-            "bundleId": "com.napsternxg.readlater"
+            "bundleIdentifier": "com.napsternxg.readlater.ShareExtension"
           }
         }
       ]
@@ -50,7 +54,6 @@
     "extra": {
       "router": {},
       "eas": {
-        "build": {},
         "projectId": "a28b1407-0a80-4865-98c1-0892996d5823"
       }
     }

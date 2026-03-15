@@ -1,0 +1,72 @@
+  console.warn
+    An error occurred in the <Stack> component.
+    
+    Consider adding an error boundary to your tree to customize error handling behavior.
+    Visit https://react.dev/link/error-boundaries to learn more about error boundaries.
+
+      at defaultOnUncaughtError (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:5452:15)
+      at logUncaughtError (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:5512:11)
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:1574:13)
+      at lane.callback (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:5542:9)
+      at callCallback (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2700:16)
+      at commitCallbacks (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2720:11)
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:1574:13)
+      at commitLayoutEffectOnFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:8936:15)
+      at flushLayoutEffects (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:11356:13)
+      at commitRoot (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:11310:9)
+      at commitRootWhenReady (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10532:7)
+      at performWorkOnRoot (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10494:15)
+      at performWorkOnRootViaSchedulerTask (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2094:7)
+      at Immediate.performWorkUntilDeadline [as _onImmediate] (node_modules/scheduler/cjs/scheduler.native.development.js:45:48)
+
+  console.warn
+    An error occurred in the <Stack> component.
+    
+    Consider adding an error boundary to your tree to customize error handling behavior.
+    Visit https://react.dev/link/error-boundaries to learn more about error boundaries.
+
+      at defaultOnUncaughtError (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:5452:15)
+      at logUncaughtError (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:5512:11)
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:1574:13)
+      at lane.callback (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:5542:9)
+      at callCallback (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2700:16)
+      at commitCallbacks (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2720:11)
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:1574:13)
+      at commitLayoutEffectOnFiber (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:8936:15)
+      at flushLayoutEffects (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:11356:13)
+      at commitRoot (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:11310:9)
+      at commitRootWhenReady (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10532:7)
+      at performWorkOnRoot (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10494:15)
+      at performWorkOnRootViaSchedulerTask (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2094:7)
+      at Immediate.performWorkUntilDeadline [as _onImmediate] (node_modules/scheduler/cjs/scheduler.native.development.js:45:48)
+
+FAIL __tests__/ShareIntentFlow.test.tsx (35.61 s)
+  Share Intent Flow
+    ├ù navigates to /add when share intent is detected and DB is ready (95 ms)
+    ΓêÜ does not navigate if share intent has no value (15 ms)
+
+  ΓùÅ Share Intent Flow ΓÇ║ navigates to /add when share intent is detected and DB is ready
+
+    expect(jest.fn()).toHaveBeenCalledWith(...expected)
+
+    Expected: {"params": {"url": "https://shared.com"}, "pathname": "/add"}
+
+    Number of calls: 0
+
+      40 |     });
+      41 |
+    > 42 |     expect(mockRouter.push).toHaveBeenCalledWith({
+         |                             ^
+      43 |       pathname: '/add',
+      44 |       params: { url: 'https://shared.com' },
+      45 |     });
+
+      at Object.toHaveBeenCalledWith (__tests__/ShareIntentFlow.test.tsx:42:29)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 1 passed, 2 total
+Snapshots:   0 total
+Time:        36.719 s
+Ran all test suites matching /__tests__\\ShareIntentFlow.test.tsx/i.

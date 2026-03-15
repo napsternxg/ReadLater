@@ -15,7 +15,7 @@ export const unstable_settings = {
 
 SplashScreen.preventAutoHideAsync();
 
-function RootLayoutContent() {
+export function RootLayoutContent() {
   const { colorScheme } = useTheme();
   const [dbReady, setDbReady] = useState(false);
 
@@ -23,13 +23,21 @@ function RootLayoutContent() {
   const router = useRouter();
 
   useEffect(() => {
-    if (hasShareIntent && shareIntent.value && shareIntent.type === 'text') {
-      // Small delay to ensure navigation is ready
-      const url = shareIntent.value;
-      resetShareIntent();
-      router.push({ pathname: '/add', params: { url } });
+    if (hasShareIntent && shareIntent && dbReady) {
+      // expo-share-intent v5+ uses text, files, type properties
+      // The shared URL is typically in shareIntent.value or shareIntent.text
+      const sharedValue = (shareIntent as any).value || (shareIntent as any).text;
+      
+      if (sharedValue) {
+        resetShareIntent();
+        
+        // Use a slightly longer delay and router.replace to ensure it takes effect
+        setTimeout(() => {
+          router.push({ pathname: '/add', params: { url: sharedValue } });
+        }, 500);
+      }
     }
-  }, [hasShareIntent, shareIntent, router]);
+  }, [hasShareIntent, shareIntent, dbReady, error, router]);
 
   useEffect(() => {
     initDb()

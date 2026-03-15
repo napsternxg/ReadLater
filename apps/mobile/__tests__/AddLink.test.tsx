@@ -73,4 +73,15 @@ describe('AddLinkScreen', () => {
       expect(addTagToLink).toHaveBeenCalledTimes(2);
     });
   });
+
+  it('pre-fills URL when passed via search params', async () => {
+    const { useLocalSearchParams } = require('expo-router');
+    (useLocalSearchParams as jest.Mock).mockReturnValue({ url: 'https://shared-link.com' });
+    
+    const { getByDisplayValue } = render(<AddLinkScreen />);
+    
+    await waitFor(() => {
+      expect(getByDisplayValue('https://shared-link.com')).toBeTruthy();
+    });
+  });
 });
