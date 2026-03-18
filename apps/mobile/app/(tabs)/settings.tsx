@@ -12,6 +12,7 @@ import { useState, useEffect } from 'react';
 import * as Clipboard from 'expo-clipboard';
 import { useRouter } from 'expo-router';
 import { setupSyncFolder, syncPush, syncPull } from '../../utils/sync';
+import { getFeatureFlags, toggleFeature } from '../../utils/features';
 
 export default function SettingsScreen() {
   const { theme: currentTheme, colorScheme, setTheme } = useTheme();
@@ -21,6 +22,7 @@ export default function SettingsScreen() {
   const [showRelocateModal, setShowRelocateModal] = useState(false);
   const [newNameInput, setNewNameInput] = useState('');
   const [developerMode, setDeveloperMode] = useState(false);
+  const [waybackArchiver, setWaybackArchiver] = useState(false);
   const router = useRouter();
 
   const SETTINGS_FILE = `${(FileSystem as any).documentDirectory || (FileSystem as any).cacheDirectory}settings.json`;
@@ -40,6 +42,9 @@ export default function SettingsScreen() {
           const settings = JSON.parse(content);
           setDeveloperMode(settings.developerMode === true);
         }
+        
+        const flags = await getFeatureFlags();
+        setWaybackArchiver(flags['waybackArchiver'] === true);
       } catch (e) {
         console.error('Error reading settings:', e);
       }
@@ -50,7 +55,7 @@ export default function SettingsScreen() {
   const toggleDeveloperMode = async (value: boolean) => {
     setDeveloperMode(value);
     try {
-      let settings = {};
+      let settings: any = {};
       const info = await FileSystem.getInfoAsync(SETTINGS_FILE);
       if (info.exists) {
         const content = await FileSystem.readAsStringAsync(SETTINGS_FILE);
@@ -61,6 +66,11 @@ export default function SettingsScreen() {
     } catch (e) {
       console.error('Error saving settings:', e);
     }
+  };
+
+  const updateFeatureFlag = async (flag: 'waybackArchiver', value: boolean) => {
+    if (flag === 'waybackArchiver') setWaybackArchiver(value);
+    await toggleFeature(flag, value);
   };
 
   const handleExport = async () => {
@@ -341,6 +351,23 @@ export default function SettingsScreen() {
           </Text>
           <Text style={[styles.dbActionHint, { color: theme.accent }]}>Tap for options (Share, Relocate)</Text>
         </TouchableOpacity>
+      </View>
+
+      {/* Extensions & Features */}
+      <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>Extensions</Text>
+      <View style={[styles.sectionCard, { backgroundColor: theme.cardBackground }]}>
+        <View style={styles.settingRow}>
+          <View style={styles.settingLeft}>
+            <IconSymbol name="archivebox" size={20} color={theme.accent} />
+            <Text style={[styles.settingText, { color: theme.text }]}>Wayback Machine Integration</Text>
+          </View>
+          <Switch
+            value={waybackArchiver}
+            onValueChange={(val) => updateFeatureFlag('waybackArchiver', val)}
+            trackColor={{ false: theme.border, true: theme.accent }}
+            thumbColor={Platform.OS === 'ios' ? undefined : (waybackArchiver ? theme.accent : '#f4f3f4')}
+          />
+        </View>
       </View>
 
       {/* Developer Settings */}

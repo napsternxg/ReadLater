@@ -91,7 +91,8 @@ erDiagram
     - **Schema Explorer**: Real-time inspection of table definitions (`CREATE TABLE`).
     - **Quick Actions**: Wrapping selectable query chips for common workflows.
 
-### 3. Wayback Machine Integration
+### 3. Wayback Machine Integration (Feature Extension)
+- **Modular Architecture**: Built as a standalone feature extension (`features/wayback/index.tsx`), utilizing the central feature flags system to decouple its UI and logic from the core application.
 - **Archival Layer**: Integrates with the Internet Archive's "Save Page Now" API to create permanent snapshots of saved links.
 - **System Entities**: Uses the `system` entity type (e.g., `system:wayback`) to track which links have been archived without bloating the main `links` table.
 - **Dynamic Generation**: Wayback URLs are generated on-the-fly using the link's `created_at` timestamp, ensuring consistent access to the specific version saved by the user.
@@ -108,12 +109,16 @@ erDiagram
 - **Extracted UI Components**: Rather than bloated monolithic screens, the UI is heavily componentized. Standard shared ui boundaries include isolated list rendering components, dedicated Modal fragments for edits and collection additions, and separated UI helpers.
 - **Query Builders**: Database logic utilizes shared helper functions instead of repetitive, literal SQL strings to construct consistent `JOIN` statements across different entity domains.
 
+### 7. Modular Feature Flags ([utils/features.ts](file:///g:/Code/Node/ReadLater/apps/mobile/utils/features.ts))
+- **Opt-in Extensibility**: Experimental features (like the Wayback Archiver) are built as modular components that can be toggled via `settings.json`.
+- **Data Management**: Future features natively leverage the highly flexible `entities` table (e.g., `system:wayback` or `feature:my-extension`) instead of rigidly creating custom relational tables. This prevents complex runtime database locking and removes the need for isolated schema migrations. Extremely complex configurations store state in isolated JSON files via `expo-file-system`.
+
 ## Core Workflows
 
 ### Saving a Link
 1.  **Input**: User enters or pastes a URL.
 2.  **Auto-Fetch**: After a 2-second debounce, the Scraper fetches page details.
-3.  **Archival Option**: If Developer Mode is ON, users can toggle "Save to Wayback Machine".
+3.  **Archival Option**: If the Wayback Archiver feature extension is enabled in settings, users can toggle "Save to Wayback Machine".
 4.  **Persistence**: 
     - Link is saved to `links`.
     - Domain is extracted and saved as a `domain` entity.
