@@ -2,21 +2,71 @@ import * as SQLite from 'expo-sqlite';
 import * as FileSystem from 'expo-file-system/legacy';
 
 const FS = FileSystem as any;
-const CONFIG_FILE = `${FS.documentDirectory || FS.cacheDirectory}db_config.json`;
+const DOCUMENT_DIR = FS.documentDirectory || FS.cacheDirectory;
+const SETTINGS_FILE = `${DOCUMENT_DIR}settings.json`;
+const LEGACY_CONFIG_FILE = `${DOCUMENT_DIR}db_config.json`;
+const OBSOLETE_DEV_MODE_FILE = `${DOCUMENT_DIR}developer_mode.json`;
 const DEFAULT_DB_NAME = 'readlater.db';
 
 let db: SQLite.SQLiteDatabase | null = null;
 
 export const getDbName = async () => {
   try {
-    const info = await FileSystem.getInfoAsync(CONFIG_FILE);
+    // 1. Try modern settings file
+    const info = await FileSystem.getInfoAsync(SETTINGS_FILE);
     if (info.exists) {
-      const content = await FileSystem.readAsStringAsync(CONFIG_FILE);
+      const content = await FileSystem.readAsStringAsync(SETTINGS_FILE);
+      const settings = JSON.parse(content);
+      if (settings.dbName) return settings.dbName;
+    }
+
+    // 2. Try legacy config file and migrate
+    const legacyInfo = await FileSystem.getInfoAsync(LEGACY_CONFIG_FILE);
+    if (legacyInfo.exists) {
+      const content = await FileSystem.readAsStringAsync(LEGACY_CONFIG_FILE);
       const config = JSON.parse(content);
-      return config.dbName || DEFAULT_DB_NAME;
+      const dbName = config.dbName || DEFAULT_DB_NAME;
+      
+      // Migrate to settings.json
+      let currentSettings = {};
+      const settingsInfo = await FileSystem.getInfoAsync(SETTINGS_FILE);
+      if (settingsInfo.exists) {
+        const settingsContent = await FileSystem.readAsStringAsync(SETTINGS_FILE);
+        currentSettings = JSON.parse(settingsContent);
+      }
+      
+      await FileSystem.writeAsStringAsync(SETTINGS_FILE, JSON.stringify({
+        ...currentSettings,
+        dbName
+      }));
+      
+      // Delete legacy
+      await FileSystem.deleteAsync(LEGACY_CONFIG_FILE, { idempotent: true });
+      return dbName;
+    }
+
+    // 3. Try obsolete developer_mode.json and migrate
+    const devInfo = await FileSystem.getInfoAsync(OBSOLETE_DEV_MODE_FILE);
+    if (devInfo.exists) {
+      const content = await FileSystem.readAsStringAsync(OBSOLETE_DEV_MODE_FILE);
+      const devSettings = JSON.parse(content);
+      
+      let currentSettings = {};
+      const settingsInfo = await FileSystem.getInfoAsync(SETTINGS_FILE);
+      if (settingsInfo.exists) {
+        const settingsContent = await FileSystem.readAsStringAsync(SETTINGS_FILE);
+        currentSettings = JSON.parse(settingsContent);
+      }
+      
+      await FileSystem.writeAsStringAsync(SETTINGS_FILE, JSON.stringify({
+        ...currentSettings,
+        developerMode: devSettings.developerMode === true
+      }));
+      
+      await FileSystem.deleteAsync(OBSOLETE_DEV_MODE_FILE, { idempotent: true });
     }
   } catch (e) {
-    console.error('Error reading db config:', e);
+    console.error('Error reading/migrating db config:', e);
   }
   return DEFAULT_DB_NAME;
 };
@@ -50,7 +100,14 @@ export const getDb = async (): Promise<SQLite.SQLiteDatabase> => {
     if (name !== DEFAULT_DB_NAME) {
       console.warn(`[getDb] Resetting to default database due to error in "${name}".`);
       try {
-        await FileSystem.deleteAsync(CONFIG_FILE, { idempotent: true });
+        // Remove dbName from settings to fallback to default
+        const info = await FileSystem.getInfoAsync(SETTINGS_FILE);
+        if (info.exists) {
+          const content = await FileSystem.readAsStringAsync(SETTINGS_FILE);
+          const settings = JSON.parse(content);
+          delete settings.dbName;
+          await FileSystem.writeAsStringAsync(SETTINGS_FILE, JSON.stringify(settings));
+        }
         const path = await getDbPath(); 
         await FileSystem.deleteAsync(path, { idempotent: true });
       } catch (err) {
@@ -117,9 +174,15 @@ export const relocateDb = async (newName: string) => {
 
   // Update setting
   try {
-    await FileSystem.writeAsStringAsync(CONFIG_FILE, JSON.stringify({ dbName: newName }));
+    let settings = {};
+    const info = await FileSystem.getInfoAsync(SETTINGS_FILE);
+    if (info.exists) {
+      const content = await FileSystem.readAsStringAsync(SETTINGS_FILE);
+      settings = JSON.parse(content);
+    }
+    await FileSystem.writeAsStringAsync(SETTINGS_FILE, JSON.stringify({ ...settings, dbName: newName }));
   } catch (e) {
-    console.error('Error writing db config:', e);
+    console.error('Error updating settings with dbName:', e);
   }
   
   // Re-initialize
@@ -182,9 +245,15 @@ export const usePickedDb = async (externalUri: string, filename: string) => {
 
   // 5. Update setting
   try {
-    await FileSystem.writeAsStringAsync(CONFIG_FILE, JSON.stringify({ dbName: finalName }));
+    let settings = {};
+    const info = await FileSystem.getInfoAsync(SETTINGS_FILE);
+    if (info.exists) {
+      const content = await FileSystem.readAsStringAsync(SETTINGS_FILE);
+      settings = JSON.parse(content);
+    }
+    await FileSystem.writeAsStringAsync(SETTINGS_FILE, JSON.stringify({ ...settings, dbName: finalName }));
   } catch (e) {
-    console.error('Error writing db config:', e);
+    console.error('Error updating settings with picked dbName:', e);
   }
   
   // Re-initialize
@@ -198,11 +267,17 @@ export const resetToDefaultDb = async () => {
     db = null;
   }
 
-  // Remove config file
+  // Remove dbName from settings
   try {
-    await FileSystem.deleteAsync(CONFIG_FILE, { idempotent: true });
+    const info = await FileSystem.getInfoAsync(SETTINGS_FILE);
+    if (info.exists) {
+      const content = await FileSystem.readAsStringAsync(SETTINGS_FILE);
+      const settings = JSON.parse(content);
+      delete settings.dbName;
+      await FileSystem.writeAsStringAsync(SETTINGS_FILE, JSON.stringify(settings));
+    }
   } catch (e) {
-    console.error('Error deleting db config:', e);
+    console.error('Error removing dbName from settings:', e);
   }
 
   // The caller is responsible for re-initializing if needed (e.g. in Settings)

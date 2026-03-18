@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
-import { StyleSheet, View, Text, TextInput, TouchableOpacity, ScrollView, ActivityIndicator, KeyboardAvoidingView, Platform, Alert } from 'react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useState, useEffect, useCallback } from 'react';
+import { StyleSheet, View, Text, TextInput, TouchableOpacity, ScrollView, ActivityIndicator, KeyboardAvoidingView, Platform, Alert, Linking } from 'react-native';
+import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { Image } from 'expo-image';
 import { fetchLinkMetadata } from '../utils/scraper';
 import { insertLink, addEntityToLink, Link as DbLink, getAllTagNames, getLinkByUrl } from '../db/queries';
@@ -8,6 +8,9 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Colors } from '@/constants/theme';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { showAlert } from '../utils/alert';
+import { isDeveloperModeEnabled } from '../utils/settings';
+import { generateWaybackUrl, saveToWayback } from '../utils/wayback';
+import { Switch } from 'react-native';
 
 export default function AddLinkScreen() {
   const router = useRouter();
@@ -24,6 +27,14 @@ export default function AddLinkScreen() {
   const [loading, setLoading] = useState(false);
   const [allTags, setAllTags] = useState<string[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [isDevMode, setIsDevMode] = useState(false);
+  const [useWayback, setUseWayback] = useState(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      isDeveloperModeEnabled().then(setIsDevMode).catch(console.error);
+    }, [])
+  );
 
   useEffect(() => {
     getAllTagNames().then(setAllTags).catch(console.error);
@@ -114,6 +125,11 @@ export default function AddLinkScreen() {
     // Add tags
     for (const t of tags) {
       await addEntityToLink(id, 'tag', t);
+    }
+
+    if (useWayback) {
+      await addEntityToLink(id, 'system', 'wayback');
+      saveToWayback(fullUrl);
     }
     
     router.back();
@@ -251,6 +267,31 @@ export default function AddLinkScreen() {
           numberOfLines={4}
         />
 
+        {/* Wayback Machine Section (Developer Mode only) */}
+        {isDevMode && (
+          <View style={styles.devSection}>
+            <View style={styles.switchRow}>
+              <Text style={[styles.label, { color: theme.text, marginTop: 0 }]}>Save to Wayback Machine</Text>
+              <Switch
+                value={useWayback}
+                onValueChange={setUseWayback}
+                trackColor={{ false: theme.border, true: theme.accent }}
+                thumbColor={Platform.OS === 'ios' ? '#fff' : useWayback ? theme.accent : '#f4f3f4'}
+              />
+            </View>
+            {useWayback && (
+              <View style={[styles.waybackPreview, { backgroundColor: theme.inputBackground, borderColor: theme.border }]}>
+                <Text style={[styles.waybackLabel, { color: theme.textSecondary }]}>Generated Wayback URL:</Text>
+                <TouchableOpacity onPress={() => url && Linking.openURL(generateWaybackUrl(url, Date.now()))}>
+                  <Text style={[styles.waybackUrl, { color: theme.accent }]} numberOfLines={2}>
+                    {generateWaybackUrl(url || '...', Date.now())}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
+        )}
+
         {/* Save Button */}
         <TouchableOpacity style={[styles.saveButton, { backgroundColor: theme.accent }]} onPress={handleSave}>
           <Text style={styles.saveButtonText}>Save Link</Text>
@@ -387,5 +428,31 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
+  },
+  devSection: {
+    marginTop: 20,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(0,0,0,0.05)',
+  },
+  switchRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  waybackPreview: {
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+  },
+  waybackLabel: {
+    fontSize: 12,
+    marginBottom: 4,
+  },
+  waybackUrl: {
+    fontSize: 13,
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
   },
 });

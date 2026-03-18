@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
-import { StyleSheet, View, Text, TextInput, TouchableOpacity, ScrollView, ActivityIndicator, Alert, KeyboardAvoidingView, Platform } from 'react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useState, useEffect, useCallback } from 'react';
+import { StyleSheet, View, Text, TextInput, TouchableOpacity, ScrollView, ActivityIndicator, Alert, KeyboardAvoidingView, Platform, Linking } from 'react-native';
+import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { Image } from 'expo-image';
 import { fetchLinkMetadata } from '../utils/scraper';
 import { getDb } from '../db';
@@ -8,6 +8,10 @@ import { addEntityToLink, Link as DbLink, removeEntityFromLink, getTagsForLink, 
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Colors } from '@/constants/theme';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { isDeveloperModeEnabled } from '../utils/settings';
+import { generateWaybackUrl, saveToWayback } from '../utils/wayback';
+import { Switch } from 'react-native';
+import { getSystemEntitiesForLink } from '../db/queries';
 
 export default function EditLinkScreen() {
   const router = useRouter();
@@ -26,6 +30,16 @@ export default function EditLinkScreen() {
   const [initialLoading, setInitialLoading] = useState(true);
   const [allTags, setAllTags] = useState<string[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [isDevMode, setIsDevMode] = useState(false);
+  const [useWayback, setUseWayback] = useState(false);
+  const [hasWayback, setHasWayback] = useState(false);
+  const [createdAt, setCreatedAt] = useState<number>(0);
+
+  useFocusEffect(
+    useCallback(() => {
+      isDeveloperModeEnabled().then(setIsDevMode).catch(console.error);
+    }, [])
+  );
 
   useEffect(() => {
     getAllTagNames().then(setAllTags).catch(console.error);
@@ -43,9 +57,15 @@ export default function EditLinkScreen() {
           setImageUrl(link.image_url || '');
           setDomain(link.domain || '');
           setNotes(link.notes || '');
+          setCreatedAt(link.created_at);
           
           const tags = await getTagsForLink(id);
           setTags(tags);
+
+          const systemEntities = await getSystemEntitiesForLink(id);
+          const activeWayback = systemEntities.includes('wayback');
+          setHasWayback(activeWayback);
+          setUseWayback(activeWayback);
         }
       } catch (e) {
         console.error(e);
@@ -100,6 +120,13 @@ export default function EditLinkScreen() {
 
       for (const t of tags) {
          await addEntityToLink(id, 'tag', t);
+      }
+
+      if (useWayback && !hasWayback) {
+        await addEntityToLink(id, 'system', 'wayback');
+        saveToWayback(url);
+      } else if (!useWayback && hasWayback) {
+        await removeEntityFromLink(id, 'system', 'wayback');
       }
       
       router.back();
@@ -239,6 +266,31 @@ export default function EditLinkScreen() {
           numberOfLines={4}
         />
 
+        {/* Wayback Machine Section (Developer Mode only) */}
+        {isDevMode && (
+          <View style={styles.devSection}>
+            <View style={styles.switchRow}>
+              <Text style={[styles.label, { color: theme.text, marginTop: 0 }]}>Save to Wayback Machine</Text>
+              <Switch
+                value={useWayback}
+                onValueChange={setUseWayback}
+                trackColor={{ false: theme.border, true: theme.accent }}
+                thumbColor={Platform.OS === 'ios' ? '#fff' : useWayback ? theme.accent : '#f4f3f4'}
+              />
+            </View>
+            {isDevMode && hasWayback && createdAt !== null && createdAt > 0 && (
+          <View style={[styles.waybackPreview, { backgroundColor: theme.inputBackground, borderColor: theme.border, marginTop: 20 }]}>
+            <Text style={[styles.waybackLabel, { color: theme.textSecondary }]}>Archived on Wayback Machine:</Text>
+            <TouchableOpacity onPress={() => url && createdAt && Linking.openURL(generateWaybackUrl(url, createdAt))}>
+              <Text style={[styles.waybackUrl, { color: theme.accent }]} numberOfLines={2}>
+                {generateWaybackUrl(url, createdAt)}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
+          </View>
+        )}
+
         <TouchableOpacity style={[styles.saveButton, { backgroundColor: theme.accent }]} onPress={handleUpdate}>
           <Text style={styles.saveButtonText}>Update Link</Text>
         </TouchableOpacity>
@@ -365,5 +417,31 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
+  },
+  devSection: {
+    marginTop: 20,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(0,0,0,0.05)',
+  },
+  switchRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  waybackPreview: {
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+  },
+  waybackLabel: {
+    fontSize: 12,
+    marginBottom: 4,
+  },
+  waybackUrl: {
+    fontSize: 13,
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
   },
 });
