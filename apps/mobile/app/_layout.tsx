@@ -3,11 +3,13 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import 'react-native-reanimated';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { initDb } from '../db';
 import { ThemeProvider, useTheme } from '../context/ThemeContext';
 import { ShareIntentProvider, useShareIntent } from 'expo-share-intent';
 import { useRouter } from 'expo-router';
+import { AppState } from 'react-native';
+import { syncPush, syncPull } from '../utils/sync';
 
 export const unstable_settings = {
   anchor: '(tabs)',
@@ -21,6 +23,21 @@ export function RootLayoutContent() {
 
   const { hasShareIntent, shareIntent, resetShareIntent, error } = useShareIntent();
   const router = useRouter();
+  const appState = useRef(AppState.currentState);
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', nextAppState => {
+      if (appState.current.match(/inactive|background/) && nextAppState === 'active') {
+        syncPull();
+      } else if (appState.current === 'active' && nextAppState.match(/inactive|background/)) {
+        syncPush();
+      }
+      appState.current = nextAppState;
+    });
+    return () => {
+      subscription.remove();
+    };
+  }, []);
 
   useEffect(() => {
     if (hasShareIntent && shareIntent && dbReady) {

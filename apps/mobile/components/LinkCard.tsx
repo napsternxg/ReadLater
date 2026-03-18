@@ -9,6 +9,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Colors } from '@/constants/theme';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { updateLinkLastClicked } from '@/db/queries';
+import { router } from 'expo-router';
 
 dayjs.extend(relativeTime);
 
@@ -50,10 +51,15 @@ export function LinkCard({
 }: LinkCardProps) {
   const colorScheme = useColorScheme() ?? 'light';
   const theme = Colors[colorScheme];
+  const isCollection = systemEntities.includes('collection');
 
   const handleOpenLink = () => {
     updateLinkLastClicked(link.id);
-    Linking.openURL(link.url).catch((err) => console.error('Failed to open URL', err));
+    if (isCollection) {
+      router.push(`/collection/${link.id}` as any);
+    } else {
+      Linking.openURL(link.url).catch((err) => console.error('Failed to open URL', err));
+    }
   };
 
   const handleCopyLink = async () => {
@@ -88,7 +94,11 @@ export function LinkCard({
               />
             </View>
           )}
-          {faviconUrl ? (
+          {isCollection ? (
+            <View style={[styles.favicon, styles.faviconPlaceholder, { backgroundColor: theme.inputBackground }]}>
+              <IconSymbol name="folder.fill" size={16} color={theme.accent} />
+            </View>
+          ) : faviconUrl ? (
             <Image source={{ uri: faviconUrl }} style={styles.favicon} />
           ) : (
             <View style={[styles.favicon, styles.faviconPlaceholder, { backgroundColor: theme.inputBackground }]}>
@@ -103,13 +113,18 @@ export function LinkCard({
               {link.title || link.url}
             </Text>
             <View style={styles.compactMeta}>
-              <TouchableOpacity 
-                onPress={() => link.domain && onDomainPress?.(link.domain)} 
-                hitSlop={8}
-                style={{ alignSelf: 'flex-start' }}
-              >
-                <Text style={[styles.compactDomain, { color: theme.accent }]} numberOfLines={1}>{link.domain}</Text>
-              </TouchableOpacity>
+              {!isCollection && (
+                <TouchableOpacity 
+                  onPress={() => link.domain && onDomainPress?.(link.domain)} 
+                  hitSlop={8}
+                  style={{ alignSelf: 'flex-start' }}
+                >
+                  <Text style={[styles.compactDomain, { color: theme.accent }]} numberOfLines={1}>{link.domain}</Text>
+                </TouchableOpacity>
+              )}
+              {isCollection && (
+                <Text style={[styles.compactDomain, { color: theme.accent }]} numberOfLines={1}>Collection</Text>
+              )}
               <Text style={[styles.compactTime, { color: theme.textSecondary }]}>{dayjs(link.created_at).fromNow()}</Text>
             </View>
             {(systemEntities.length > 0 || tags.length > 0) && (
@@ -137,10 +152,17 @@ export function LinkCard({
             <IconSymbol name="doc.on.doc" size={14} color={theme.icon} />
             <Text style={[styles.actionLabel, { color: theme.textSecondary }]}>Copy</Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={handleOpenLink} hitSlop={8} style={styles.compactActionBtn}>
-            <IconSymbol name="square.and.arrow.up" size={14} color={theme.accent} />
-            <Text style={[styles.actionLabel, { color: theme.accent }]}>Open</Text>
-          </TouchableOpacity>
+          {isCollection ? (
+            <TouchableOpacity onPress={handleOpenLink} hitSlop={8} style={styles.compactActionBtn}>
+              <IconSymbol name="folder" size={14} color={theme.accent} />
+              <Text style={[styles.actionLabel, { color: theme.accent }]}>Open</Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity onPress={handleOpenLink} hitSlop={8} style={styles.compactActionBtn}>
+              <IconSymbol name="square.and.arrow.up" size={14} color={theme.accent} />
+              <Text style={[styles.actionLabel, { color: theme.accent }]}>Open</Text>
+            </TouchableOpacity>
+          )}
           {onDelete && (
             <TouchableOpacity onPress={() => onDelete(link.id)} hitSlop={8} style={styles.compactActionBtn}>
               <IconSymbol name="trash" size={14} color={theme.danger} />
@@ -190,7 +212,11 @@ export function LinkCard({
 
       <View style={styles.content}>
         <View style={styles.titleRow}>
-          {faviconUrl ? (
+          {isCollection ? (
+            <View style={[styles.favicon, styles.faviconPlaceholder, { backgroundColor: theme.inputBackground }]}>
+              <IconSymbol name="folder.fill" size={16} color={theme.accent} />
+            </View>
+          ) : faviconUrl ? (
             <Image source={{ uri: faviconUrl }} style={styles.favicon} />
           ) : (
             <View style={[styles.favicon, styles.faviconPlaceholder, { backgroundColor: theme.inputBackground }]}>
@@ -206,13 +232,18 @@ export function LinkCard({
                 {link.title || link.url}
               </Text>
             </View>
-            <TouchableOpacity 
-              onPress={() => link.domain && onDomainPress?.(link.domain)} 
-              hitSlop={8}
-              style={{ alignSelf: 'flex-start' }}
-            >
-              <Text style={[styles.domain, { color: theme.accent }]}>{link.domain || new URL(link.url).hostname}</Text>
-            </TouchableOpacity>
+            {!isCollection && (
+              <TouchableOpacity 
+                onPress={() => link.domain && onDomainPress?.(link.domain)} 
+                hitSlop={8}
+                style={{ alignSelf: 'flex-start' }}
+              >
+                <Text style={[styles.domain, { color: theme.accent }]}>{link.domain || new URL(link.url).hostname}</Text>
+              </TouchableOpacity>
+            )}
+            {isCollection && (
+              <Text style={[styles.domain, { color: theme.accent }]}>Collection</Text>
+            )}
           </View>
         </View>
 
@@ -244,9 +275,15 @@ export function LinkCard({
             <TouchableOpacity onPress={handleCopyLink} hitSlop={8} style={styles.iconBtn}>
               <IconSymbol name="doc.on.doc" size={18} color={theme.icon} />
             </TouchableOpacity>
-            <TouchableOpacity onPress={handleOpenLink} hitSlop={8} style={styles.iconBtn}>
-              <IconSymbol name="square.and.arrow.up" size={18} color={theme.accent} />
-            </TouchableOpacity>
+            {isCollection ? (
+              <TouchableOpacity onPress={handleOpenLink} hitSlop={8} style={styles.iconBtn}>
+                <IconSymbol name="folder" size={18} color={theme.accent} />
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity onPress={handleOpenLink} hitSlop={8} style={styles.iconBtn}>
+                <IconSymbol name="square.and.arrow.up" size={18} color={theme.accent} />
+              </TouchableOpacity>
+            )}
             {onDelete && (
               <TouchableOpacity onPress={() => onDelete(link.id)} hitSlop={8} style={styles.iconBtn}>
                 <IconSymbol name="trash" size={18} color={theme.danger} />

@@ -9,6 +9,7 @@ export interface Link {
   notes: string | null;
   last_clicked_at: number | null;
   created_at: number;
+  show_notes?: number;
 }
 
 export interface Tag {
@@ -19,6 +20,11 @@ export interface Tag {
 export const getLinkByUrl = async (url: string): Promise<Link | null> => {
   const db = await getDb();
   return await db.getFirstAsync<Link>('SELECT * FROM links WHERE url = ?', [url]);
+};
+
+export const getLinkById = async (id: string): Promise<Link | null> => {
+  const db = await getDb();
+  return await db.getFirstAsync<Link>('SELECT * FROM links WHERE id = ?', [id]);
 };
 
 export const insertLink = async (link: Link) => {
@@ -325,4 +331,101 @@ export const importData = async (data: any[]) => {
       }
     }
   });
+};
+
+export const createCollection = async (title: string, description: string, tags: string[] = []): Promise<string> => {
+  const db = await getDb();
+  const id = `col_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+  const url = `readlater://collection/${id}`;
+  const now = Date.now();
+  
+  await db.runAsync(
+    'INSERT INTO links (id, url, title, notes, created_at) VALUES (?, ?, ?, ?, ?)',
+    [id, url, title, description || null, now]
+  );
+  
+  await addEntityToLink(id, 'system', 'collection');
+  
+  for (const tag of tags) {
+    if (tag) await addEntityToLink(id, 'tag', tag);
+  }
+  
+  return id;
+};
+
+export const updateCollection = async (id: string, title: string, description: string) => {
+  const db = await getDb();
+  await db.runAsync(
+    'UPDATE links SET title = ?, notes = ? WHERE id = ?',
+    [title, description || null, id]
+  );
+};
+
+export const addLinksToCollection = async (collectionId: string, linkIds: string[]) => {
+  const db = await getDb();
+  await db.withTransactionAsync(async () => {
+    const result = await db.getFirstAsync<{ max_order: number }>(
+      'SELECT MAX(order_index) as max_order FROM collection_links WHERE collection_id = ?',
+      [collectionId]
+    );
+    let orderIndex = (result?.max_order ?? 0) + 1;
+    
+    for (const linkId of linkIds) {
+      await db.runAsync(
+        'INSERT OR IGNORE INTO collection_links (collection_id, link_id, order_index, show_notes) VALUES (?, ?, ?, 0)',
+        [collectionId, linkId, orderIndex++]
+      );
+    }
+  });
+};
+
+export const removeLinksFromCollection = async (collectionId: string, linkIds: string[]) => {
+  const db = await getDb();
+  await db.withTransactionAsync(async () => {
+    for (const linkId of linkIds) {
+      await db.runAsync('DELETE FROM collection_links WHERE collection_id = ? AND link_id = ?', [collectionId, linkId]);
+    }
+  });
+};
+
+export const updateCollectionLinkOrder = async (collectionId: string, linkIdsInOrder: string[]) => {
+  const db = await getDb();
+  await db.withTransactionAsync(async () => {
+    for (let i = 0; i < linkIdsInOrder.length; i++) {
+      await db.runAsync(
+        'UPDATE collection_links SET order_index = ? WHERE collection_id = ? AND link_id = ?',
+        [i, collectionId, linkIdsInOrder[i]]
+      );
+    }
+  });
+};
+
+export const updateCollectionLinkShowNotes = async (collectionId: string, linkId: string, showNotes: boolean) => {
+  const db = await getDb();
+  await db.runAsync(
+    'UPDATE collection_links SET show_notes = ? WHERE collection_id = ? AND link_id = ?',
+    [showNotes ? 1 : 0, collectionId, linkId]
+  );
+};
+
+export const getCollectionLinks = async (collectionId: string): Promise<Link[]> => {
+  const db = await getDb();
+  return await db.getAllAsync<Link>(
+    `SELECT l.*, cl.show_notes FROM links l
+     JOIN collection_links cl ON l.id = cl.link_id
+     WHERE cl.collection_id = ?
+     ORDER BY cl.order_index ASC, l.created_at DESC`,
+    [collectionId]
+  );
+};
+
+export const getCollections = async (): Promise<Link[]> => {
+  const db = await getDb();
+  return await db.getAllAsync<Link>(
+    `SELECT l.* FROM links l
+     JOIN link_entities le ON l.id = le.link_id
+     JOIN entities e ON le.entity_id = e.id
+     WHERE e.type = 'system' AND e.name = 'collection'
+     ORDER BY l.created_at DESC`
+  );
 };

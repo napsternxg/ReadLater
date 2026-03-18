@@ -3,7 +3,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { useFocusEffect, useRouter, useLocalSearchParams, useNavigation } from 'expo-router';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { LinkCard } from '@/components/LinkCard';
-import { getAllLinks, getLinksByTag, getLinksByDomain, deleteLink, Link as DbLink, getTagsForLink, updateLinkNotes, getSystemEntitiesForLink } from '../../db/queries';
+import { getAllLinks, getLinksByTag, getLinksByDomain, deleteLink, Link as DbLink, getTagsForLink, updateLinkNotes, getSystemEntitiesForLink, getCollections, createCollection, addLinksToCollection } from '../../db/queries';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Colors } from '@/constants/theme';
 import { showConfirm } from '../../utils/alert';
@@ -36,6 +36,11 @@ export default function HomeScreen() {
 
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [noteText, setNoteText] = useState('');
+
+  const [isCollectionModalVisible, setIsCollectionModalVisible] = useState(false);
+  const [availableCollections, setAvailableCollections] = useState<DbLink[]>([]);
+  const [newCollectionTitle, setNewCollectionTitle] = useState('');
+  const [newCollectionNotes, setNewCollectionNotes] = useState('');
 
   // Clear search when Home tab is pressed
   useEffect(() => {
@@ -142,6 +147,32 @@ export default function HomeScreen() {
     }
   };
 
+  const handleOpenCollectionModal = async () => {
+    const cols = await getCollections();
+    setAvailableCollections(cols);
+    setIsCollectionModalVisible(true);
+  };
+
+  const handleAddToExistingCollection = async (collectionId: string) => {
+    const linkIds = Array.from(selectedIds);
+    await addLinksToCollection(collectionId, linkIds);
+    setIsCollectionModalVisible(false);
+    setSelectedIds(new Set());
+    fetchLinks();
+  };
+
+  const handleCreateAndAddCollection = async () => {
+    if (!newCollectionTitle.trim()) return;
+    const newColId = await createCollection(newCollectionTitle, newCollectionNotes);
+    const linkIds = Array.from(selectedIds);
+    await addLinksToCollection(newColId, linkIds);
+    setIsCollectionModalVisible(false);
+    setSelectedIds(new Set());
+    setNewCollectionTitle('');
+    setNewCollectionNotes('');
+    fetchLinks();
+  };
+
   const openNoteEditor = (id: string) => {
     const link = links.find(l => l.id === id);
     if (link) {
@@ -221,6 +252,9 @@ export default function HomeScreen() {
             }} style={styles.selectionBarBtn}>
               <IconSymbol name="doc.text" size={20} color="#fff" />
             </TouchableOpacity>
+            <TouchableOpacity onPress={handleOpenCollectionModal} style={styles.selectionBarBtn}>
+              <IconSymbol name="folder.badge.plus" size={20} color="#fff" />
+            </TouchableOpacity>
           </View>
         </View>
       )}
@@ -259,7 +293,13 @@ export default function HomeScreen() {
             compact={compact}
             selected={selectedIds.has(item.id)}
             selectionMode={selectionMode}
-            onPress={(id) => router.push({ pathname: '/edit' as any, params: { id } })}
+            onPress={(id) => {
+              if (item.systemEntities.includes('collection')) {
+                router.push(`/collection/${id}` as any);
+              } else {
+                router.push({ pathname: '/edit' as any, params: { id } });
+              }
+            }}
             onDelete={handleDelete}
             onLongPress={handleLongPress}
             onNotePress={openNoteEditor}
@@ -341,6 +381,70 @@ export default function HomeScreen() {
               </TouchableWithoutFeedback>
             </View>
           </TouchableWithoutFeedback>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      {/* Add to Collection Modal */}
+      <Modal
+        visible={isCollectionModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setIsCollectionModalVisible(false)}
+      >
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
+          style={styles.modalOverlay}
+        >
+          <View style={[styles.modalContent, { backgroundColor: theme.cardBackground, maxHeight: '80%' }]}>
+            <View style={styles.modalHeader}>
+              <Text style={[styles.modalTitle, { color: theme.text }]}>Add to Collection</Text>
+              <TouchableOpacity onPress={() => setIsCollectionModalVisible(false)} hitSlop={10}>
+                <IconSymbol name="xmark" size={20} color={theme.icon} />
+              </TouchableOpacity>
+            </View>
+            
+            <FlatList
+              data={availableCollections}
+              keyExtractor={(item) => item.id}
+              style={{ maxHeight: 200, marginBottom: 16 }}
+              renderItem={({ item }) => (
+                <TouchableOpacity 
+                  style={{ padding: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.border }}
+                  onPress={() => handleAddToExistingCollection(item.id)}
+                >
+                  <Text style={{ fontSize: 16, fontWeight: '500', color: theme.text }}>{item.title || 'Untitled Collection'}</Text>
+                  {item.notes && <Text style={{ fontSize: 13, color: theme.textSecondary, marginTop: 2 }}>{item.notes}</Text>}
+                </TouchableOpacity>
+              )}
+              ListEmptyComponent={<Text style={{ color: theme.textSecondary, padding: 12, textAlign: 'center' }}>No existing collections found.</Text>}
+            />
+
+            <View style={{ borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.border, paddingTop: 16 }}>
+              <Text style={[styles.modalTitle, { color: theme.text, fontSize: 16, marginBottom: 12 }]}>Or Create New</Text>
+              <TextInput
+                style={[styles.noteInput, { height: 44, backgroundColor: theme.inputBackground, color: theme.text, borderColor: theme.border, marginBottom: 8 }]}
+                placeholder="Collection Title"
+                placeholderTextColor={theme.textSecondary}
+                value={newCollectionTitle}
+                onChangeText={setNewCollectionTitle}
+              />
+              <TextInput
+                style={[styles.noteInput, { height: 80, backgroundColor: theme.inputBackground, color: theme.text, borderColor: theme.border, marginBottom: 16 }]}
+                placeholder="Description (optional)"
+                placeholderTextColor={theme.textSecondary}
+                value={newCollectionNotes}
+                onChangeText={setNewCollectionNotes}
+                multiline
+              />
+              <TouchableOpacity 
+                style={[styles.modalBtn, { backgroundColor: newCollectionTitle.trim() ? theme.accent : theme.border }]} 
+                onPress={handleCreateAndAddCollection}
+                disabled={!newCollectionTitle.trim()}
+              >
+                <Text style={[styles.modalBtnText, { color: newCollectionTitle.trim() ? '#fff' : theme.textSecondary }]}>Create & Add Links</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
         </KeyboardAvoidingView>
       </Modal>
     </View>

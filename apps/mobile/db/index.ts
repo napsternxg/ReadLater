@@ -143,6 +143,18 @@ export const getDb = async (): Promise<SQLite.SQLiteDatabase> => {
   }
 };
 
+export const checkpointDb = async () => {
+  try {
+    const database = await getDb();
+    if (database) {
+      await database.execAsync('PRAGMA wal_checkpoint(TRUNCATE);');
+      console.log('WAL checkpointed successfully.');
+    }
+  } catch (e) {
+    console.error('Failed to checkpoint WAL:', e);
+  }
+};
+
 export const relocateDb = async (newName: string) => {
   const currentName = await getDbName();
   if (currentName === newName) return;
@@ -323,6 +335,16 @@ export const initDb = async (): Promise<void> => {
         FOREIGN KEY (link_id) REFERENCES links(id) ON DELETE CASCADE,
         FOREIGN KEY (entity_id) REFERENCES entities(id) ON DELETE CASCADE
       );
+
+      CREATE TABLE IF NOT EXISTS collection_links (
+        collection_id TEXT,
+        link_id TEXT,
+        order_index INTEGER,
+        show_notes INTEGER DEFAULT 0,
+        PRIMARY KEY (collection_id, link_id),
+        FOREIGN KEY (collection_id) REFERENCES links(id) ON DELETE CASCADE,
+        FOREIGN KEY (link_id) REFERENCES links(id) ON DELETE CASCADE
+      );
     `);
     
     await runMigrations(database);
@@ -371,6 +393,12 @@ const runMigrations = async (db: SQLite.SQLiteDatabase) => {
       
       await db.runAsync('UPDATE link_entities SET entity_id = ? WHERE entity_id = ?', [systemNotesId!, notesTag.id]);
       await db.runAsync('DELETE FROM entities WHERE id = ?', [notesTag.id]);
+    }
+
+    try {
+      await db.runAsync('ALTER TABLE collection_links ADD COLUMN show_notes INTEGER DEFAULT 0');
+    } catch (e) {
+      // Column likely already exists
     }
 
     });

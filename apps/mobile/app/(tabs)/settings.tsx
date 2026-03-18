@@ -11,6 +11,7 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useState, useEffect } from 'react';
 import * as Clipboard from 'expo-clipboard';
 import { useRouter } from 'expo-router';
+import { setupSyncFolder, syncPush, syncPull } from '../../utils/sync';
 
 export default function SettingsScreen() {
   const { theme: currentTheme, colorScheme, setTheme } = useTheme();
@@ -296,6 +297,32 @@ export default function SettingsScreen() {
           <View style={styles.settingLeft}>
             <IconSymbol name="trash.fill" size={20} color={theme.danger} />
             <Text style={[styles.settingText, { color: theme.danger }]}>Clear All Data</Text>
+          </View>
+          <IconSymbol name="chevron.right" size={16} color={theme.icon} />
+        </TouchableOpacity>
+      </View>
+
+      {/* Syncthing Sync */}
+      <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>Sync (Syncthing)</Text>
+      <View style={[styles.sectionCard, { backgroundColor: theme.cardBackground }]}>
+        <TouchableOpacity style={[styles.settingRow, { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.border }]} onPress={() => setupSyncFolder((t, m) => showAlert(t, m))}>
+          <View style={styles.settingLeft}>
+             <IconSymbol name="arrow.triangle.2.circlepath" size={20} color={theme.accent} />
+             <Text style={[styles.settingText, { color: theme.text }]}>Link Sync Folder</Text>
+          </View>
+          <IconSymbol name="chevron.right" size={16} color={theme.icon} />
+        </TouchableOpacity>
+        <TouchableOpacity style={[styles.settingRow, { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.border }]} onPress={() => { syncPush(); showAlert('Push Attempted', 'Check logs for details.'); }}>
+          <View style={styles.settingLeft}>
+             <IconSymbol name="arrow.up.circle" size={20} color={theme.accent} />
+             <Text style={[styles.settingText, { color: theme.text }]}>Push to Sync Folder</Text>
+          </View>
+          <IconSymbol name="chevron.right" size={16} color={theme.icon} />
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.settingRow} onPress={() => syncPull(true, (t, m) => showAlert(t, m))}>
+          <View style={styles.settingLeft}>
+             <IconSymbol name="arrow.down.circle" size={20} color={theme.accent} />
+             <Text style={[styles.settingText, { color: theme.text }]}>Pull from Sync Folder</Text>
           </View>
           <IconSymbol name="chevron.right" size={16} color={theme.icon} />
         </TouchableOpacity>
