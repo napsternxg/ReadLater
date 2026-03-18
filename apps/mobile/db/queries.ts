@@ -121,42 +121,46 @@ export const getAllLinks = async (searchQuery?: string, sortBy: 'created_at' | '
   return await db.getAllAsync<Link>(`SELECT * FROM links ORDER BY ${orderBy}`);
 };
 
-export const getLinksByTag = async (tagName: string, sortBy: 'created_at' | 'last_clicked_at' | 'title' = 'created_at'): Promise<Link[]> => {
-  const db = await getDb();
-  const orderByMap = {
-    'created_at': 'l.created_at DESC',
-    'last_clicked_at': 'COALESCE(l.last_clicked_at, 0) DESC, l.created_at DESC',
-    'title': 'l.title COLLATE NOCASE ASC'
+const buildOrderBy = (sortBy: string, prefix = '') => {
+  const p = prefix ? `${prefix}.` : '';
+  const map: Record<string, string> = {
+    'created_at': `${p}created_at DESC`,
+    'last_clicked_at': `COALESCE(${p}last_clicked_at, 0) DESC, ${p}created_at DESC`,
+    'title': `${p}title COLLATE NOCASE ASC`
   };
-  const orderBy = orderByMap[sortBy] || orderByMap['created_at'];
+  return map[sortBy] || map['created_at'];
+};
 
+const getEntitiesOrderBy = (sortBy: string) => {
+  const map: Record<string, string> = {
+    'count': 'count DESC',
+    'name': 'e.name COLLATE NOCASE ASC',
+    'domain': 'e.name COLLATE NOCASE ASC',
+    'created_at': 'MAX(l.created_at) DESC',
+    'last_clicked_at': 'MAX(COALESCE(l.last_clicked_at, 0)) DESC'
+  };
+  return map[sortBy] || map['count'];
+};
+
+export const getLinksByEntity = async (type: string, name: string, sortBy: 'created_at' | 'last_clicked_at' | 'title' = 'created_at'): Promise<Link[]> => {
+  const db = await getDb();
+  const orderBy = buildOrderBy(sortBy, 'l');
   return await db.getAllAsync<Link>(
     `SELECT l.* FROM links l
      JOIN link_entities le ON l.id = le.link_id
      JOIN entities e ON le.entity_id = e.id
-     WHERE e.type = 'tag' AND e.name = ?
+     WHERE e.type = ? AND e.name = ?
      ORDER BY ${orderBy}`,
-    [tagName]
+    [type, name]
   );
 };
 
-export const getLinksByDomain = async (domain: string, sortBy: 'created_at' | 'last_clicked_at' | 'title' = 'created_at'): Promise<Link[]> => {
-  const db = await getDb();
-  const orderByMap = {
-    'created_at': 'l.created_at DESC',
-    'last_clicked_at': 'COALESCE(l.last_clicked_at, 0) DESC, l.created_at DESC',
-    'title': 'l.title COLLATE NOCASE ASC'
-  };
-  const orderBy = orderByMap[sortBy] || orderByMap['created_at'];
+export const getLinksByTag = async (tagName: string, sortBy: 'created_at' | 'last_clicked_at' | 'title' = 'created_at'): Promise<Link[]> => {
+  return getLinksByEntity('tag', tagName, sortBy);
+};
 
-  return await db.getAllAsync<Link>(
-    `SELECT l.* FROM links l
-     JOIN link_entities le ON l.id = le.link_id
-     JOIN entities e ON le.entity_id = e.id
-     WHERE e.type = 'domain' AND e.name = ?
-     ORDER BY ${orderBy}`,
-    [domain]
-  );
+export const getLinksByDomain = async (domain: string, sortBy: 'created_at' | 'last_clicked_at' | 'title' = 'created_at'): Promise<Link[]> => {
+  return getLinksByEntity('domain', domain, sortBy);
 };
 
 export const deleteLink = async (id: string) => {
@@ -166,13 +170,7 @@ export const deleteLink = async (id: string) => {
 
 export const getTagsWithCount = async (sortBy: 'count' | 'name' | 'created_at' | 'last_clicked_at' = 'count') => {
   const db = await getDb();
-  const orderByMap = {
-    'count': 'count DESC',
-    'name': 'e.name COLLATE NOCASE ASC',
-    'created_at': 'MAX(l.created_at) DESC',
-    'last_clicked_at': 'MAX(COALESCE(l.last_clicked_at, 0)) DESC'
-  };
-  const orderBy = orderByMap[sortBy] || orderByMap['count'];
+  const orderBy = getEntitiesOrderBy(sortBy);
 
   return await db.getAllAsync<{ name: string; count: number }>(
     `SELECT e.name, COUNT(le.link_id) as count
@@ -187,13 +185,7 @@ export const getTagsWithCount = async (sortBy: 'count' | 'name' | 'created_at' |
 
 export const getDomainsWithCount = async (sortBy: 'count' | 'domain' | 'created_at' | 'last_clicked_at' = 'count') => {
   const db = await getDb();
-  const orderByMap = {
-    'count': 'count DESC',
-    'domain': 'e.name COLLATE NOCASE ASC',
-    'created_at': 'MAX(l.created_at) DESC',
-    'last_clicked_at': 'MAX(COALESCE(l.last_clicked_at, 0)) DESC'
-  };
-  const orderBy = orderByMap[sortBy] || orderByMap['count'];
+  const orderBy = getEntitiesOrderBy(sortBy);
 
   return await db.getAllAsync<{ domain: string; count: number }>(
     `SELECT e.name as domain, COUNT(le.link_id) as count

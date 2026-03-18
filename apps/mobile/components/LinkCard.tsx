@@ -34,6 +34,93 @@ const getFaviconUrl = (domain: string | null) => {
   return `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
 };
 
+// --- Subcomponents ---
+
+const Favicon = ({ faviconUrl, domain, isCollection, theme }: any) => {
+  if (isCollection) {
+    return (
+      <View style={[styles.favicon, styles.faviconPlaceholder, { backgroundColor: theme.inputBackground }]}>
+        <IconSymbol name="folder.fill" size={16} color={theme.accent} />
+      </View>
+    );
+  }
+  if (faviconUrl) {
+    return <Image source={{ uri: faviconUrl }} style={styles.favicon} />;
+  }
+  return (
+    <View style={[styles.favicon, styles.faviconPlaceholder, { backgroundColor: theme.inputBackground }]}>
+      <Text style={{ fontSize: 14, color: theme.icon }}>{domain?.[0]?.toUpperCase() || '🔗'}</Text>
+    </View>
+  );
+};
+
+const TagList = ({ tags, systemEntities, theme, onTagPress, onSystemTagPress, compact }: any) => {
+  if (systemEntities.length === 0 && tags.length === 0) return null;
+  const displayTags = compact ? tags.slice(0, 2) : tags;
+  return (
+    <View style={[styles.tagsContainer, compact && { marginTop: 4 }]}>
+      {systemEntities.map((name: string) => (
+        <TouchableOpacity key={name} style={[styles.tagBadge, { backgroundColor: theme.accent + '15' }]} onPress={() => onSystemTagPress?.(name)}>
+          <Text style={[styles.tagText, { color: theme.accent }]}>⚙️ {name}</Text>
+        </TouchableOpacity>
+      ))}
+      {displayTags.map((tag: string) => (
+        <TouchableOpacity key={tag} style={[styles.tagBadge, { backgroundColor: theme.inputBackground }]} onPress={() => onTagPress?.(tag)}>
+          <Text style={[styles.tagText, { color: theme.textSecondary }]}>#{tag}</Text>
+        </TouchableOpacity>
+      ))}
+    </View>
+  );
+};
+
+const ActionButtons = ({ link, isCollection, theme, compact, onNotePress, handleCopyLink, handleOpenLink, onDelete }: any) => {
+  if (compact) {
+    return (
+      <View style={styles.compactActions}>
+        <TouchableOpacity onPress={() => onNotePress?.(link.id)} hitSlop={8} style={styles.compactActionBtn}>
+          <IconSymbol name="pencil.and.outline" size={14} color={link.notes ? theme.accent : theme.icon} />
+          <Text style={[styles.actionLabel, { color: link.notes ? theme.accent : theme.textSecondary }]}>Notes</Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={handleCopyLink} hitSlop={8} style={styles.compactActionBtn}>
+          <IconSymbol name="doc.on.doc" size={14} color={theme.icon} />
+          <Text style={[styles.actionLabel, { color: theme.textSecondary }]}>Copy</Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={handleOpenLink} hitSlop={8} style={styles.compactActionBtn}>
+          <IconSymbol name={isCollection ? "folder" : "square.and.arrow.up"} size={14} color={theme.accent} />
+          <Text style={[styles.actionLabel, { color: theme.accent }]}>Open</Text>
+        </TouchableOpacity>
+        {onDelete && (
+          <TouchableOpacity onPress={() => onDelete(link.id)} hitSlop={8} style={styles.compactActionBtn}>
+            <IconSymbol name="trash" size={14} color={theme.danger} />
+            <Text style={[styles.actionLabel, { color: theme.danger }]}>Delete</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.footerActions}>
+      <TouchableOpacity onPress={() => onNotePress?.(link.id)} hitSlop={8} style={styles.iconBtn}>
+        <IconSymbol name="pencil.and.outline" size={18} color={link.notes ? theme.accent : theme.icon} />
+      </TouchableOpacity>
+      <TouchableOpacity onPress={handleCopyLink} hitSlop={8} style={styles.iconBtn}>
+        <IconSymbol name="doc.on.doc" size={18} color={theme.icon} />
+      </TouchableOpacity>
+      <TouchableOpacity onPress={handleOpenLink} hitSlop={8} style={styles.iconBtn}>
+        <IconSymbol name={isCollection ? "folder" : "square.and.arrow.up"} size={18} color={theme.accent} />
+      </TouchableOpacity>
+      {onDelete && (
+        <TouchableOpacity onPress={() => onDelete(link.id)} hitSlop={8} style={styles.iconBtn}>
+          <IconSymbol name="trash" size={18} color={theme.danger} />
+        </TouchableOpacity>
+      )}
+    </View>
+  );
+};
+
+// --- Main Component ---
+
 export function LinkCard({ 
   link, 
   tags = [], 
@@ -94,17 +181,9 @@ export function LinkCard({
               />
             </View>
           )}
-          {isCollection ? (
-            <View style={[styles.favicon, styles.faviconPlaceholder, { backgroundColor: theme.inputBackground }]}>
-              <IconSymbol name="folder.fill" size={16} color={theme.accent} />
-            </View>
-          ) : faviconUrl ? (
-            <Image source={{ uri: faviconUrl }} style={styles.favicon} />
-          ) : (
-            <View style={[styles.favicon, styles.faviconPlaceholder, { backgroundColor: theme.inputBackground }]}>
-              <Text style={{ fontSize: 14, color: theme.icon }}>{link.domain?.[0]?.toUpperCase() || '🔗'}</Text>
-            </View>
-          )}
+          
+          <Favicon faviconUrl={faviconUrl} domain={link.domain} isCollection={isCollection} theme={theme} />
+          
           <View style={styles.compactContent}>
             <Text style={[styles.compactTitle, { color: theme.text }]} numberOfLines={1}>
               {systemEntities.includes('notes') && (
@@ -127,49 +206,12 @@ export function LinkCard({
               )}
               <Text style={[styles.compactTime, { color: theme.textSecondary }]}>{dayjs(link.created_at).fromNow()}</Text>
             </View>
-            {(systemEntities.length > 0 || tags.length > 0) && (
-              <View style={[styles.tagsContainer, { marginTop: 4 }]}>
-                {systemEntities.map((name) => (
-                  <TouchableOpacity key={name} style={[styles.tagBadge, { backgroundColor: theme.accent + '15' }]} onPress={() => onSystemTagPress?.(name)}>
-                    <Text style={[styles.tagText, { color: theme.accent }]}>⚙️ {name}</Text>
-                  </TouchableOpacity>
-                ))}
-                {tags.slice(0, 2).map((tag) => (
-                  <TouchableOpacity key={tag} style={[styles.tagBadge, { backgroundColor: theme.inputBackground }]} onPress={() => onTagPress?.(tag)}>
-                    <Text style={[styles.tagText, { color: theme.textSecondary }]}>#{tag}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            )}
+            
+            <TagList tags={tags} systemEntities={systemEntities} theme={theme} onTagPress={onTagPress} onSystemTagPress={onSystemTagPress} compact={true} />
           </View>
         </View>
-        <View style={styles.compactActions}>
-          <TouchableOpacity onPress={() => onNotePress?.(link.id)} hitSlop={8} style={styles.compactActionBtn}>
-            <IconSymbol name="pencil.and.outline" size={14} color={link.notes ? theme.accent : theme.icon} />
-            <Text style={[styles.actionLabel, { color: link.notes ? theme.accent : theme.textSecondary }]}>Notes</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={handleCopyLink} hitSlop={8} style={styles.compactActionBtn}>
-            <IconSymbol name="doc.on.doc" size={14} color={theme.icon} />
-            <Text style={[styles.actionLabel, { color: theme.textSecondary }]}>Copy</Text>
-          </TouchableOpacity>
-          {isCollection ? (
-            <TouchableOpacity onPress={handleOpenLink} hitSlop={8} style={styles.compactActionBtn}>
-              <IconSymbol name="folder" size={14} color={theme.accent} />
-              <Text style={[styles.actionLabel, { color: theme.accent }]}>Open</Text>
-            </TouchableOpacity>
-          ) : (
-            <TouchableOpacity onPress={handleOpenLink} hitSlop={8} style={styles.compactActionBtn}>
-              <IconSymbol name="square.and.arrow.up" size={14} color={theme.accent} />
-              <Text style={[styles.actionLabel, { color: theme.accent }]}>Open</Text>
-            </TouchableOpacity>
-          )}
-          {onDelete && (
-            <TouchableOpacity onPress={() => onDelete(link.id)} hitSlop={8} style={styles.compactActionBtn}>
-              <IconSymbol name="trash" size={14} color={theme.danger} />
-              <Text style={[styles.actionLabel, { color: theme.danger }]}>Delete</Text>
-            </TouchableOpacity>
-          )}
-        </View>
+        
+        <ActionButtons link={link} isCollection={isCollection} theme={theme} compact={true} onNotePress={onNotePress} handleCopyLink={handleCopyLink} handleOpenLink={handleOpenLink} onDelete={onDelete} />
       </TouchableOpacity>
     );
   }
@@ -212,17 +254,7 @@ export function LinkCard({
 
       <View style={styles.content}>
         <View style={styles.titleRow}>
-          {isCollection ? (
-            <View style={[styles.favicon, styles.faviconPlaceholder, { backgroundColor: theme.inputBackground }]}>
-              <IconSymbol name="folder.fill" size={16} color={theme.accent} />
-            </View>
-          ) : faviconUrl ? (
-            <Image source={{ uri: faviconUrl }} style={styles.favicon} />
-          ) : (
-            <View style={[styles.favicon, styles.faviconPlaceholder, { backgroundColor: theme.inputBackground }]}>
-              <Text style={{ fontSize: 14, color: theme.icon }}>{link.domain?.[0]?.toUpperCase() || '🔗'}</Text>
-            </View>
-          )}
+          <Favicon faviconUrl={faviconUrl} domain={link.domain} isCollection={isCollection} theme={theme} />
           <View style={{ flex: 1 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
               {systemEntities.includes('notes') && (
@@ -247,50 +279,15 @@ export function LinkCard({
           </View>
         </View>
 
-        {(systemEntities.length > 0 || tags.length > 0) && (
-          <View style={styles.tagsContainer}>
-            {systemEntities.map((name) => (
-              <TouchableOpacity key={name} style={[styles.tagBadge, { backgroundColor: theme.accent + '15' }]} onPress={() => onSystemTagPress?.(name)}>
-                <Text style={[styles.tagText, { color: theme.accent }]}>⚙️ {name}</Text>
-              </TouchableOpacity>
-            ))}
-            {tags.map((tag) => (
-              <TouchableOpacity key={tag} style={[styles.tagBadge, { backgroundColor: theme.inputBackground }]} onPress={() => onTagPress?.(tag)}>
-                <Text style={[styles.tagText, { color: theme.textSecondary }]}>#{tag}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        )}
+        <TagList tags={tags} systemEntities={systemEntities} theme={theme} onTagPress={onTagPress} onSystemTagPress={onSystemTagPress} compact={false} />
       </View>
 
-
-        <View style={styles.footer}>
-          <View style={{ marginBottom: 4 }}>
-            <Text style={[styles.time, { color: theme.textSecondary }]}>{dayjs(link.created_at).fromNow()}</Text>
-          </View>
-          <View style={styles.footerActions}>
-            <TouchableOpacity onPress={() => onNotePress?.(link.id)} hitSlop={8} style={styles.iconBtn}>
-              <IconSymbol name="pencil.and.outline" size={18} color={link.notes ? theme.accent : theme.icon} />
-            </TouchableOpacity>
-            <TouchableOpacity onPress={handleCopyLink} hitSlop={8} style={styles.iconBtn}>
-              <IconSymbol name="doc.on.doc" size={18} color={theme.icon} />
-            </TouchableOpacity>
-            {isCollection ? (
-              <TouchableOpacity onPress={handleOpenLink} hitSlop={8} style={styles.iconBtn}>
-                <IconSymbol name="folder" size={18} color={theme.accent} />
-              </TouchableOpacity>
-            ) : (
-              <TouchableOpacity onPress={handleOpenLink} hitSlop={8} style={styles.iconBtn}>
-                <IconSymbol name="square.and.arrow.up" size={18} color={theme.accent} />
-              </TouchableOpacity>
-            )}
-            {onDelete && (
-              <TouchableOpacity onPress={() => onDelete(link.id)} hitSlop={8} style={styles.iconBtn}>
-                <IconSymbol name="trash" size={18} color={theme.danger} />
-              </TouchableOpacity>
-            )}
-          </View>
+      <View style={styles.footer}>
+        <View style={{ marginBottom: 4 }}>
+          <Text style={[styles.time, { color: theme.textSecondary }]}>{dayjs(link.created_at).fromNow()}</Text>
         </View>
+        <ActionButtons link={link} isCollection={isCollection} theme={theme} compact={false} onNotePress={onNotePress} handleCopyLink={handleCopyLink} handleOpenLink={handleOpenLink} onDelete={onDelete} />
+      </View>
     </TouchableOpacity>
   );
 }

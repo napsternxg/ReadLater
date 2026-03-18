@@ -37,6 +37,8 @@ The database uses a consolidated **Shared Entity Pattern** to handle various met
 erDiagram
     LINKS ||--o{ LINK_ENTITIES : has
     ENTITIES ||--o{ LINK_ENTITIES : categorizes
+    COLLECTIONS ||--o{ COLLECTION_LINKS : contains
+    LINKS ||--o{ COLLECTION_LINKS : belongs_to
     
     LINKS {
         text id PK
@@ -58,6 +60,20 @@ erDiagram
     LINK_ENTITIES {
         text link_id FK
         text entity_id FK
+    }
+
+    COLLECTIONS {
+        text id PK "Mapped via system:collection entity"
+        text title
+        text notes
+        integer created_at
+    }
+
+    COLLECTION_LINKS {
+        text collection_id FK
+        text link_id FK
+        integer order_index
+        boolean show_notes
     }
 ```
 
@@ -83,6 +99,14 @@ erDiagram
 ### 4. Metadata Scraper ([utils/scraper.ts](file:///g:/Code/Node/ReadLater/apps/mobile/utils/scraper.ts))
 - **Automatic Enrichment**: Fetches OpenGraph/Twitter tags and favicons from URLs.
 - **Sanitization**: Robust HTML entity decoding and title cleaning.
+
+### 5. Collection Management
+- **Collections as Links**: Uses a shared entity pattern where collections are themselves saved as entries in the `links` table and identified via the `system:collection` entity type.
+- **Ordered Relationships**: The `collection_links` table maintains user-defined ordering (`order_index`) and per-link display preferences (`show_notes`) for links within a collection.
+
+### 6. Code Organization Principles
+- **Extracted UI Components**: Rather than bloated monolithic screens, the UI is heavily componentized. Standard shared ui boundaries include isolated list rendering components, dedicated Modal fragments for edits and collection additions, and separated UI helpers.
+- **Query Builders**: Database logic utilizes shared helper functions instead of repetitive, literal SQL strings to construct consistent `JOIN` statements across different entity domains.
 
 ## Core Workflows
 

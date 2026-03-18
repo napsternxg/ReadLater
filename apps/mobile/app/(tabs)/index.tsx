@@ -8,7 +8,9 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Colors } from '@/constants/theme';
 import { showConfirm } from '../../utils/alert';
 import { SortMenu, SortOption } from '@/components/ui/SortMenu';
-import { Share as RNShare, Modal, TouchableWithoutFeedback } from 'react-native';
+import { Share as RNShare } from 'react-native';
+import { NoteEditorModal } from '@/components/NoteEditorModal';
+import { CollectionSelectModal } from '@/components/CollectionSelectModal';
 
 type LinkWithTags = DbLink & { tags: string[], systemEntities: string[] };
 
@@ -334,119 +336,27 @@ export default function HomeScreen() {
         onSelect={(val) => setSortBy(val)}
       />
 
-      <Modal
+      <NoteEditorModal
         visible={editingNoteId !== null}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setEditingNoteId(null)}
-      >
-        <KeyboardAvoidingView 
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
-          style={styles.modalOverlay}
-        >
-          <TouchableWithoutFeedback onPress={() => setEditingNoteId(null)}>
-            <View style={styles.modalOverlayInner}>
-              <TouchableWithoutFeedback>
-                <View style={[styles.modalContent, { backgroundColor: theme.cardBackground }]}>
-                  <View style={styles.modalHeader}>
-                    <Text style={[styles.modalTitle, { color: theme.text }]}>Edit Note</Text>
-                    <TouchableOpacity onPress={() => setEditingNoteId(null)} hitSlop={10}>
-                      <IconSymbol name="xmark" size={20} color={theme.icon} />
-                    </TouchableOpacity>
-                  </View>
-                  <TextInput
-                    style={[styles.noteInput, { backgroundColor: theme.inputBackground, color: theme.text, borderColor: theme.border }]}
-                    placeholder="Add a note..."
-                    placeholderTextColor={theme.textSecondary}
-                    value={noteText}
-                    onChangeText={setNoteText}
-                    multiline
-                    autoFocus
-                  />
-                  <View style={styles.modalActions}>
-                    <TouchableOpacity 
-                      style={[styles.modalBtn, { backgroundColor: theme.border }]} 
-                      onPress={() => setEditingNoteId(null)}
-                    >
-                      <Text style={[styles.modalBtnText, { color: theme.text }]}>Cancel</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity 
-                      style={[styles.modalBtn, { backgroundColor: theme.accent }]} 
-                      onPress={saveNote}
-                    >
-                      <Text style={[styles.modalBtnText, { color: '#fff' }]}>Save Note</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              </TouchableWithoutFeedback>
-            </View>
-          </TouchableWithoutFeedback>
-        </KeyboardAvoidingView>
-      </Modal>
+        noteText={noteText}
+        theme={theme}
+        onNoteChange={setNoteText}
+        onClose={() => setEditingNoteId(null)}
+        onSave={saveNote}
+      />
 
-      {/* Add to Collection Modal */}
-      <Modal
+      <CollectionSelectModal
         visible={isCollectionModalVisible}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setIsCollectionModalVisible(false)}
-      >
-        <KeyboardAvoidingView 
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
-          style={styles.modalOverlay}
-        >
-          <View style={[styles.modalContent, { backgroundColor: theme.cardBackground, maxHeight: '80%' }]}>
-            <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: theme.text }]}>Add to Collection</Text>
-              <TouchableOpacity onPress={() => setIsCollectionModalVisible(false)} hitSlop={10}>
-                <IconSymbol name="xmark" size={20} color={theme.icon} />
-              </TouchableOpacity>
-            </View>
-            
-            <FlatList
-              data={availableCollections}
-              keyExtractor={(item) => item.id}
-              style={{ maxHeight: 200, marginBottom: 16 }}
-              renderItem={({ item }) => (
-                <TouchableOpacity 
-                  style={{ padding: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.border }}
-                  onPress={() => handleAddToExistingCollection(item.id)}
-                >
-                  <Text style={{ fontSize: 16, fontWeight: '500', color: theme.text }}>{item.title || 'Untitled Collection'}</Text>
-                  {item.notes && <Text style={{ fontSize: 13, color: theme.textSecondary, marginTop: 2 }}>{item.notes}</Text>}
-                </TouchableOpacity>
-              )}
-              ListEmptyComponent={<Text style={{ color: theme.textSecondary, padding: 12, textAlign: 'center' }}>No existing collections found.</Text>}
-            />
-
-            <View style={{ borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.border, paddingTop: 16 }}>
-              <Text style={[styles.modalTitle, { color: theme.text, fontSize: 16, marginBottom: 12 }]}>Or Create New</Text>
-              <TextInput
-                style={[styles.noteInput, { height: 44, backgroundColor: theme.inputBackground, color: theme.text, borderColor: theme.border, marginBottom: 8 }]}
-                placeholder="Collection Title"
-                placeholderTextColor={theme.textSecondary}
-                value={newCollectionTitle}
-                onChangeText={setNewCollectionTitle}
-              />
-              <TextInput
-                style={[styles.noteInput, { height: 80, backgroundColor: theme.inputBackground, color: theme.text, borderColor: theme.border, marginBottom: 16 }]}
-                placeholder="Description (optional)"
-                placeholderTextColor={theme.textSecondary}
-                value={newCollectionNotes}
-                onChangeText={setNewCollectionNotes}
-                multiline
-              />
-              <TouchableOpacity 
-                style={[styles.modalBtn, { backgroundColor: newCollectionTitle.trim() ? theme.accent : theme.border }]} 
-                onPress={handleCreateAndAddCollection}
-                disabled={!newCollectionTitle.trim()}
-              >
-                <Text style={[styles.modalBtnText, { color: newCollectionTitle.trim() ? '#fff' : theme.textSecondary }]}>Create & Add Links</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </KeyboardAvoidingView>
-      </Modal>
+        collections={availableCollections}
+        theme={theme}
+        newCollectionTitle={newCollectionTitle}
+        newCollectionNotes={newCollectionNotes}
+        onTitleChange={setNewCollectionTitle}
+        onNotesChange={setNewCollectionNotes}
+        onClose={() => setIsCollectionModalVisible(false)}
+        onSelect={handleAddToExistingCollection}
+        onCreate={handleCreateAndAddCollection}
+      />
     </View>
   );
 }
@@ -535,58 +445,5 @@ const styles = StyleSheet.create({
   },
   selectionBarBtn: {
     padding: 4,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'flex-end',
-  },
-  modalOverlayInner: {
-    flex: 1,
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: 20,
-    paddingBottom: Platform.OS === 'ios' ? 40 : 20,
-    elevation: 5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  noteInput: {
-    borderRadius: 12,
-    padding: 16,
-    height: 150,
-    fontSize: 16,
-    textAlignVertical: 'top',
-    marginBottom: 20,
-    borderWidth: StyleSheet.hairlineWidth,
-  },
-  modalActions: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  modalBtn: {
-    flex: 1,
-    borderRadius: 12,
-    padding: 16,
-    alignItems: 'center',
-  },
-  modalBtnText: {
-    fontSize: 16,
-    fontWeight: '600',
   },
 });
