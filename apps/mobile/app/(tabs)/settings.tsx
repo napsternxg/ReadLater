@@ -1,4 +1,4 @@
-import { StyleSheet, View, Text, TouchableOpacity, Alert, Appearance, ScrollView, Platform, Linking, Share as RNShare, Modal, TouchableWithoutFeedback, TextInput } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, Alert, Appearance, ScrollView, Platform, Linking, Share as RNShare, Modal, TouchableWithoutFeedback, TextInput, Switch } from 'react-native';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import * as DocumentPicker from 'expo-document-picker';
@@ -10,6 +10,7 @@ import { Colors } from '@/constants/theme';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useState, useEffect } from 'react';
 import * as Clipboard from 'expo-clipboard';
+import { useRouter } from 'expo-router';
 
 export default function SettingsScreen() {
   const { theme: currentTheme, colorScheme, setTheme } = useTheme();
@@ -18,6 +19,10 @@ export default function SettingsScreen() {
   const [dbName, setDbName] = useState('');
   const [showRelocateModal, setShowRelocateModal] = useState(false);
   const [newNameInput, setNewNameInput] = useState('');
+  const [developerMode, setDeveloperMode] = useState(false);
+  const router = useRouter();
+
+  const SETTINGS_FILE = `${(FileSystem as any).documentDirectory || (FileSystem as any).cacheDirectory}settings.json`;
 
   useEffect(() => {
     const fetchPath = async () => {
@@ -26,9 +31,36 @@ export default function SettingsScreen() {
       setDbPath(path);
       setDbName(name);
       setNewNameInput(name);
+      
+      try {
+        const info = await FileSystem.getInfoAsync(SETTINGS_FILE);
+        if (info.exists) {
+          const content = await FileSystem.readAsStringAsync(SETTINGS_FILE);
+          const settings = JSON.parse(content);
+          setDeveloperMode(settings.developerMode === true);
+        }
+      } catch (e) {
+        console.error('Error reading settings:', e);
+      }
     };
     fetchPath();
   }, []);
+
+  const toggleDeveloperMode = async (value: boolean) => {
+    setDeveloperMode(value);
+    try {
+      let settings = {};
+      const info = await FileSystem.getInfoAsync(SETTINGS_FILE);
+      if (info.exists) {
+        const content = await FileSystem.readAsStringAsync(SETTINGS_FILE);
+        settings = JSON.parse(content);
+      }
+      const newSettings = { ...settings, developerMode: value };
+      await FileSystem.writeAsStringAsync(SETTINGS_FILE, JSON.stringify(newSettings));
+    } catch (e) {
+      console.error('Error saving settings:', e);
+    }
+  };
 
   const handleExport = async () => {
     try {
@@ -282,6 +314,35 @@ export default function SettingsScreen() {
           </Text>
           <Text style={[styles.dbActionHint, { color: theme.accent }]}>Tap for options (Share, Relocate)</Text>
         </TouchableOpacity>
+      </View>
+
+      {/* Developer Settings */}
+      <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>Developer</Text>
+      <View style={[styles.sectionCard, { backgroundColor: theme.cardBackground }]}>
+        <View style={styles.settingRow}>
+          <View style={styles.settingLeft}>
+            <IconSymbol name="terminal.fill" size={20} color={theme.accent} />
+            <Text style={[styles.settingText, { color: theme.text }]}>Developer Mode</Text>
+          </View>
+          <Switch
+            value={developerMode}
+            onValueChange={toggleDeveloperMode}
+            trackColor={{ false: theme.border, true: theme.accent }}
+            thumbColor={Platform.OS === 'ios' ? undefined : (developerMode ? theme.accent : '#f4f3f4')}
+          />
+        </View>
+        {developerMode && (
+          <TouchableOpacity 
+            style={[styles.settingRow, { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.border }]} 
+            onPress={() => router.push('/sql-runner' as any)}
+          >
+            <View style={styles.settingLeft}>
+              <IconSymbol name="cpu" size={20} color={theme.accent} />
+              <Text style={[styles.settingText, { color: theme.text }]}>SQL Query Runner</Text>
+            </View>
+            <IconSymbol name="chevron.right" size={16} color={theme.icon} />
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* About */}

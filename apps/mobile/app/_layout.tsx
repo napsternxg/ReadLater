@@ -58,6 +58,7 @@ export function RootLayoutContent() {
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="add" options={{ title: 'Add Link', presentation: 'modal' }} />
         <Stack.Screen name="edit" options={{ title: 'Edit Link' }} />
+        <Stack.Screen name="sql-runner" options={{ title: 'SQL Query Runner' }} />
       </Stack>
       <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
     </NavThemeProvider>

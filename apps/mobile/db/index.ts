@@ -217,6 +217,10 @@ export const initDb = async (): Promise<void> => {
       PRAGMA journal_mode = WAL;
       PRAGMA foreign_keys = ON;
 
+      -- Deprecate legacy tables
+      DROP TABLE IF EXISTS link_tags;
+      DROP TABLE IF EXISTS tags;
+
       CREATE TABLE IF NOT EXISTS links (
         id TEXT PRIMARY KEY,
         url TEXT NOT NULL,
@@ -228,18 +232,7 @@ export const initDb = async (): Promise<void> => {
         created_at INTEGER NOT NULL
       );
 
-      CREATE TABLE IF NOT EXISTS tags (
-        id TEXT PRIMARY KEY,
-        name TEXT UNIQUE NOT NULL
-      );
 
-      CREATE TABLE IF NOT EXISTS link_tags (
-        link_id TEXT,
-        tag_id TEXT,
-        PRIMARY KEY (link_id, tag_id),
-        FOREIGN KEY (link_id) REFERENCES links(id) ON DELETE CASCADE,
-        FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE
-      );
 
       CREATE TABLE IF NOT EXISTS entities (
         id TEXT PRIMARY KEY,
@@ -288,31 +281,6 @@ const runMigrations = async (db: SQLite.SQLiteDatabase) => {
   console.log('Running database migrations...');
   
   await db.withTransactionAsync(async () => {
-    // 1. Move tags to entities (if tags table exists and entities is empty)
-    const entityCount = await db.getFirstAsync<{ count: number }>('SELECT COUNT(*) as count FROM entities');
-    if (entityCount && entityCount.count === 0) {
-      await db.execAsync(`
-        INSERT INTO entities (id, type, name)
-        SELECT id, 'tag', name FROM tags;
-
-        INSERT INTO link_entities (link_id, entity_id)
-        SELECT link_id, tag_id FROM link_tags;
-      `);
-
-      // 2. Move domains to entities
-      const links = await db.getAllAsync<{ id: string; domain: string }>('SELECT id, domain FROM links WHERE domain IS NOT NULL');
-      for (const link of links) {
-        let entity = await db.getFirstAsync<{ id: string }>('SELECT id FROM entities WHERE type = "domain" AND name = ?', [link.domain]);
-        let entityId = entity?.id;
-        
-        if (!entity) {
-          entityId = Math.random().toString(36).substring(2, 15);
-          await db.runAsync('INSERT INTO entities (id, type, name) VALUES (?, "domain", ?)', [entityId, link.domain]);
-        }
-        
-        await db.runAsync('INSERT OR IGNORE INTO link_entities (link_id, entity_id) VALUES (?, ?)', [link.id, entityId!]);
-      }
-    }
 
     // 3. Migrate 'notes' tags to 'notes' system entities
     // This is safe to run multiple times because it checks for e.name = "notes" AND e.type = "tag"

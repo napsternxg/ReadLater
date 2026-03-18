@@ -268,8 +268,6 @@ export const clearAllData = async () => {
     DELETE FROM link_entities;
     DELETE FROM entities;
     DELETE FROM links;
-    DELETE FROM link_tags;
-    DELETE FROM tags;
   `);
 };
 
