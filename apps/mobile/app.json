@@ -12,7 +12,9 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.napsternxg.readlater",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "UIFileSharingEnabled": true,
+        "LSSupportsOpeningDocumentsInPlace": true
       }
     },
     "android": {

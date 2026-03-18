@@ -35,6 +35,17 @@ const MAPPING = {
   'arrow.down.doc': 'file-download',
   'list.bullet': 'view-list',
   'square.grid.2x2': 'view-module',
+  'arrow.up.arrow.down': 'sort',
+  'calendar': 'event',
+  'clock': 'access-time',
+  'textformat': 'title',
+  'list.number': 'format-list-numbered',
+  'checkmark': 'check',
+  'xmark': 'close',
+  'pencil.and.outline': 'edit',
+  'doc.text': 'description',
+  'circle': 'radio-button-unchecked',
+  'checkmark.circle.fill': 'check-circle',
 } as IconMapping;
 
 /**

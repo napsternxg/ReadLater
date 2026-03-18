@@ -1,16 +1,34 @@
-import { StyleSheet, View, Text, TouchableOpacity, Alert, Appearance, ScrollView, Platform, Linking } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, Alert, Appearance, ScrollView, Platform, Linking, Share as RNShare, Modal, TouchableWithoutFeedback, TextInput } from 'react-native';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import * as DocumentPicker from 'expo-document-picker';
 import { getAllLinksWithTags, clearAllData, importData } from '../../db/queries';
+import { getDbPath, getDbName, relocateDb, usePickedDb, resetToDefaultDb, initDb } from '../../db/index';
 import { useTheme } from '../../context/ThemeContext';
 import { showConfirm, showAlert } from '../../utils/alert';
 import { Colors } from '@/constants/theme';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { useState, useEffect } from 'react';
+import * as Clipboard from 'expo-clipboard';
 
 export default function SettingsScreen() {
   const { theme: currentTheme, colorScheme, setTheme } = useTheme();
   const theme = Colors[colorScheme];
+  const [dbPath, setDbPath] = useState('');
+  const [dbName, setDbName] = useState('');
+  const [showRelocateModal, setShowRelocateModal] = useState(false);
+  const [newNameInput, setNewNameInput] = useState('');
+
+  useEffect(() => {
+    const fetchPath = async () => {
+      const path = await getDbPath();
+      const name = await getDbName();
+      setDbPath(path);
+      setDbName(name);
+      setNewNameInput(name);
+    };
+    fetchPath();
+  }, []);
 
   const handleExport = async () => {
     try {
@@ -99,6 +117,101 @@ export default function SettingsScreen() {
     });
   };
 
+  const handleDbAction = () => {
+    Alert.alert(
+      'Database Options',
+      'Manage your SQLite database file.',
+      [
+        { text: 'Copy Path', onPress: () => {
+          Clipboard.setStringAsync(dbPath);
+          showAlert('Copied', 'Path copied to clipboard');
+        }},
+        { text: 'Share DB File', onPress: async () => {
+          if (await Sharing.isAvailableAsync()) {
+            await Sharing.shareAsync(dbPath);
+          } else {
+            showAlert('Error', 'Sharing not available');
+          }
+        }},
+        { text: 'Pick External DB', onPress: () => {
+          Alert.alert(
+            'Relocate Database',
+            'To work properly, the active database must stay in the app\'s internal storage. Picking an external file will copy it here.\n\nNote: You can also manage files directly in your phone\'s "Files" app since we\'ve enabled File Sharing.',
+            [
+              { text: 'Cancel', style: 'cancel' },
+              { text: 'Choose File', onPress: handlePickDb }
+            ]
+          );
+        }},
+        { text: 'Internal Rename', onPress: () => setShowRelocateModal(true) },
+        { text: 'Reset to Default', style: 'destructive', onPress: handleResetDb },
+        { text: 'Cancel', style: 'cancel' }
+      ]
+    );
+  };
+
+  const handleResetDb = () => {
+    showConfirm('Reset Database', 'This internal setting will be reset to the default "readlater.db". Any currently copied databases will remain in storage but will not be active.', async () => {
+      try {
+        await resetToDefaultDb();
+        await initDb();
+        const newName = await getDbName();
+        setDbName(newName);
+        const newPath = await getDbPath();
+        setDbPath(newPath);
+        showAlert('Success', 'Reset to default database');
+      } catch (e) {
+        console.error(e);
+        showAlert('Error', 'Failed to reset database');
+      }
+    });
+  };
+
+  const handlePickDb = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: '*/*', // Some devices don't recognize .db mime type, so use wildcard
+        copyToCacheDirectory: true,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const asset = result.assets[0];
+        if (!asset.name.endsWith('.db') && !asset.name.includes('.')) {
+          // If no extension, or not .db, we might want to warn, but let's try anyway
+        }
+        
+        await usePickedDb(asset.uri, asset.name);
+        
+        // Refresh UI
+        const newName = await getDbName();
+        setDbName(newName);
+        const newPath = await getDbPath();
+        setDbPath(newPath);
+        showAlert('Success', `Using database: ${asset.name}`);
+      }
+    } catch (e: any) {
+      console.error(e);
+      showAlert('Invalid Database', e.message || 'Failed to pick database');
+    }
+  };
+
+  const handleRelocate = async () => {
+    const trimmed = newNameInput.trim();
+    if (!trimmed) return;
+    const finalName = trimmed.endsWith('.db') ? trimmed : `${trimmed}.db`;
+    try {
+      await relocateDb(finalName);
+      setDbName(finalName);
+      const newPath = await getDbPath();
+      setDbPath(newPath);
+      setShowRelocateModal(false);
+      showAlert('Success', `Database relocated to ${finalName}`);
+    } catch (e) {
+      console.error(e);
+      showAlert('Error', 'Failed to relocate database');
+    }
+  };
+
   const themeOptions = [
     { label: 'Light', icon: 'sun.max' as const, value: 'light' as const },
     { label: 'Dark', icon: 'moon' as const, value: 'dark' as const },
@@ -156,6 +269,21 @@ export default function SettingsScreen() {
         </TouchableOpacity>
       </View>
 
+      {/* System info */}
+      <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>System</Text>
+      <View style={[styles.sectionCard, { backgroundColor: theme.cardBackground, padding: 16 }]}>
+        <TouchableOpacity onPress={handleDbAction}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 8 }}>
+            <IconSymbol name="folder.fill" size={20} color={theme.accent} />
+            <Text style={[styles.settingText, { color: theme.text, fontWeight: '600' }]}>Database Location</Text>
+          </View>
+          <Text style={[styles.dbPathText, { color: theme.textSecondary }]} numberOfLines={3}>
+            {dbPath || 'Loading...'}
+          </Text>
+          <Text style={[styles.dbActionHint, { color: theme.accent }]}>Tap for options (Share, Relocate)</Text>
+        </TouchableOpacity>
+      </View>
+
       {/* About */}
       <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>About</Text>
       <View style={[styles.sectionCard, { backgroundColor: theme.cardBackground }]}>
@@ -182,6 +310,49 @@ export default function SettingsScreen() {
       </View>
 
       <View style={{ height: 40 }} />
+
+      {/* Relocate Modal */}
+      <Modal
+        visible={showRelocateModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowRelocateModal(false)}
+      >
+        <TouchableWithoutFeedback onPress={() => setShowRelocateModal(false)}>
+          <View style={styles.modalOverlay}>
+            <TouchableWithoutFeedback>
+              <View style={[styles.modalContent, { backgroundColor: theme.cardBackground }]}>
+                <Text style={[styles.modalTitle, { color: theme.text }]}>Relocate Database</Text>
+                <Text style={[styles.modalDesc, { color: theme.textSecondary }]}>
+                  Enter the new name for your database file. This will move the existing file.
+                </Text>
+                <TextInput
+                  style={[styles.modalInput, { backgroundColor: theme.inputBackground, color: theme.text, borderColor: theme.border }]}
+                  value={newNameInput}
+                  onChangeText={setNewNameInput}
+                  placeholder="new_database.db"
+                  placeholderTextColor={theme.textSecondary}
+                  autoCapitalize="none"
+                />
+                <View style={styles.modalButtons}>
+                  <TouchableOpacity 
+                    style={[styles.modalBtn, { backgroundColor: theme.inputBackground }]} 
+                    onPress={() => setShowRelocateModal(false)}
+                  >
+                    <Text style={[styles.modalBtnText, { color: theme.text }]}>Cancel</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    style={[styles.modalBtn, { backgroundColor: theme.accent }]} 
+                    onPress={handleRelocate}
+                  >
+                    <Text style={[styles.modalBtnText, { color: '#fff' }]}>Move</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
     </ScrollView>
   );
 }
@@ -245,6 +416,16 @@ const styles = StyleSheet.create({
   settingText: {
     fontSize: 16,
   },
+  dbPathText: {
+    fontSize: 12,
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+    lineHeight: 16,
+  },
+  dbActionHint: {
+    fontSize: 12,
+    marginTop: 8,
+    fontWeight: '500',
+  },
   aboutContent: {
     padding: 16,
     alignItems: 'center',
@@ -282,4 +463,55 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     textDecorationLine: 'underline',
   },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    width: '100%',
+    borderRadius: 15,
+    padding: 20,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 10,
+  },
+  modalDesc: {
+    fontSize: 14,
+    marginBottom: 16,
+    lineHeight: 20,
+  },
+  modalInput: {
+    width: '100%',
+    padding: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    fontSize: 16,
+    marginBottom: 20,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 12,
+  },
+  modalBtn: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  modalBtnText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
 });
+
+

@@ -5,13 +5,21 @@ export interface LinkMetadata {
 }
 
 const decodeHtml = (html: string) => {
+  const entities: Record<string, string> = {
+    '&amp;': '&', '&quot;': '"', '&apos;': "'", '&lt;': '<', '&gt;': '>',
+    '&nbsp;': ' ', '&mdash;': '—', '&ndash;': '–', '&hellip;': '…',
+    '&laquo;': '«', '&raquo;': '»', '&lsquo;': '‘', '&rsquo;': '’',
+    '&ldquo;': '“', '&rdquo;': '”'
+  };
   return html
-    .replace(/&amp;/g, '&')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&#(\d+);/g, (_, dec) => String.fromCharCode(dec));
+    .replace(/&[a-z0-9#]+;/gi, (entity) => {
+      if (entities[entity.toLowerCase()]) return entities[entity.toLowerCase()];
+      const match = entity.match(/&#(\d+);/);
+      if (match) return String.fromCharCode(parseInt(match[1], 10));
+      const hexMatch = entity.match(/&#x([0-9a-f]+);/i);
+      if (hexMatch) return String.fromCharCode(parseInt(hexMatch[1], 16));
+      return entity;
+    });
 };
 
 export const fetchLinkMetadata = async (url: string): Promise<LinkMetadata> => {
@@ -88,7 +96,7 @@ export const fetchLinkMetadata = async (url: string): Promise<LinkMetadata> => {
      }
 
      return { 
-       title: title ? title.trim() : url, 
+       title: title ? title.replace(/\s+/g, ' ').trim() : url, 
        image_url: image_url || null, 
        domain 
      };

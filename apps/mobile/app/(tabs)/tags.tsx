@@ -4,6 +4,8 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { getTagsWithCount } from '../../db/queries';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Colors } from '@/constants/theme';
+import { IconSymbol } from '@/components/ui/icon-symbol';
+import { SortMenu, SortOption } from '@/components/ui/SortMenu';
 
 export default function TagsScreen() {
   const router = useRouter();
@@ -11,10 +13,12 @@ export default function TagsScreen() {
   const theme = Colors[colorScheme];
   const [tags, setTags] = useState<{ name: string; count: number }[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+  const [sortBy, setSortBy] = useState<'count' | 'name' | 'created_at' | 'last_clicked_at'>('count');
+  const [isSortMenuVisible, setIsSortMenuVisible] = useState(false);
 
   const fetchTags = async () => {
     try {
-      const data = await getTagsWithCount();
+      const data = await getTagsWithCount(sortBy);
       setTags(data);
     } catch (e) {
       console.error(e);
@@ -24,7 +28,7 @@ export default function TagsScreen() {
   useFocusEffect(
     useCallback(() => {
       fetchTags();
-    }, [])
+    }, [sortBy])
   );
 
   const onRefresh = async () => {
@@ -37,8 +41,21 @@ export default function TagsScreen() {
     router.push({ pathname: '/', params: { tag } });
   };
 
+  const sortOptions: SortOption<'count' | 'name' | 'created_at' | 'last_clicked_at'>[] = [
+    { label: 'Most Links', value: 'count', icon: 'list.number' },
+    { label: 'Name', value: 'name', icon: 'textformat' },
+    { label: 'Most Recent Addition', value: 'created_at', icon: 'calendar' },
+    { label: 'Recently Clicked', value: 'last_clicked_at', icon: 'clock' },
+  ];
+
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
+      <View style={[styles.header, { backgroundColor: theme.cardBackground, borderBottomColor: theme.border }]}>
+        <Text style={[styles.title, { color: theme.text }]}>Tags</Text>
+        <TouchableOpacity onPress={() => setIsSortMenuVisible(true)} hitSlop={8}>
+          <IconSymbol name="arrow.up.arrow.down" size={20} color={theme.icon} />
+        </TouchableOpacity>
+      </View>
       <FlatList
         data={tags}
         keyExtractor={(item) => item.name}
@@ -59,6 +76,13 @@ export default function TagsScreen() {
           </View>
         }
       />
+      <SortMenu
+        visible={isSortMenuVisible}
+        onClose={() => setIsSortMenuVisible(false)}
+        options={sortOptions}
+        currentValue={sortBy}
+        onSelect={setSortBy}
+      />
     </View>
   );
 }
@@ -69,7 +93,19 @@ const styles = StyleSheet.create({
   },
   list: {
     padding: 16,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
     paddingTop: 60,
+    paddingBottom: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  title: {
+    fontSize: 20,
+    fontWeight: 'bold',
   },
   card: {
     borderRadius: 8,

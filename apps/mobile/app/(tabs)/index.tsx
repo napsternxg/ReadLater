@@ -1,14 +1,16 @@
-import { StyleSheet, View, Text, FlatList, TextInput, RefreshControl, TouchableOpacity, Alert } from 'react-native';
+import { StyleSheet, View, Text, FlatList, TextInput, RefreshControl, TouchableOpacity, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import { useState, useCallback, useEffect } from 'react';
 import { useFocusEffect, useRouter, useLocalSearchParams, useNavigation } from 'expo-router';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { LinkCard } from '@/components/LinkCard';
-import { getAllLinks, getLinksByTag, getLinksByDomain, deleteLink, Link as DbLink, getTagsForLink } from '../../db/queries';
+import { getAllLinks, getLinksByTag, getLinksByDomain, deleteLink, Link as DbLink, getTagsForLink, updateLinkNotes, getSystemEntitiesForLink } from '../../db/queries';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Colors } from '@/constants/theme';
 import { showConfirm } from '../../utils/alert';
+import { SortMenu, SortOption } from '@/components/ui/SortMenu';
+import { Share as RNShare, Modal, TouchableWithoutFeedback } from 'react-native';
 
-type LinkWithTags = DbLink & { tags: string[] };
+type LinkWithTags = DbLink & { tags: string[], systemEntities: string[] };
 
 export default function HomeScreen() {
   const [links, setLinks] = useState<LinkWithTags[]>([]);
@@ -26,6 +28,14 @@ export default function HomeScreen() {
   });
   
   const [refreshing, setRefreshing] = useState(false);
+  const [sortBy, setSortBy] = useState<'created_at' | 'last_clicked_at' | 'title'>('created_at');
+  const [isSortMenuVisible, setIsSortMenuVisible] = useState(false);
+  
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const selectionMode = selectedIds.size > 0;
+
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
+  const [noteText, setNoteText] = useState('');
 
   // Clear search when Home tab is pressed
   useEffect(() => {
@@ -45,17 +55,20 @@ export default function HomeScreen() {
       
       if (isTagSearch) {
         const tag = searchQuery.substring(4).trim();
-        dbLinks = tag ? await getLinksByTag(tag) : await getAllLinks();
+        dbLinks = tag ? await getLinksByTag(tag, sortBy) : await getAllLinks(undefined, sortBy);
       } else if (isDomainSearch) {
         const domain = searchQuery.substring(7).trim();
-        dbLinks = domain ? await getLinksByDomain(domain) : await getAllLinks();
+        dbLinks = domain ? await getLinksByDomain(domain, sortBy) : await getAllLinks(undefined, sortBy);
       } else {
-        dbLinks = await getAllLinks(searchQuery);
+        dbLinks = await getAllLinks(searchQuery, sortBy);
       }
       const withTags = await Promise.all(
         dbLinks.map(async (l) => {
-          const tags = await getTagsForLink(l.id);
-          return { ...l, tags };
+          const [tags, systemEntities] = await Promise.all([
+            getTagsForLink(l.id),
+            getSystemEntitiesForLink(l.id)
+          ]);
+          return { ...l, tags, systemEntities };
         })
       );
       setLinks(withTags);
@@ -72,7 +85,7 @@ export default function HomeScreen() {
   useFocusEffect(
     useCallback(() => {
       fetchLinks();
-    }, [searchQuery])
+    }, [searchQuery, sortBy])
   );
 
   const onRefresh = async () => {
@@ -97,6 +110,60 @@ export default function HomeScreen() {
     router.setParams({ domain, tag: undefined });
   };
 
+  const handleLongPress = (id: string) => {
+    const newSelected = new Set(selectedIds);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+    } else {
+      newSelected.add(id);
+    }
+    setSelectedIds(newSelected);
+  };
+
+  const handleShare = async (includeNotes = false) => {
+    const selectedLinks = links.filter(l => selectedIds.has(l.id));
+    const text = selectedLinks.map((l, index) => {
+      let part = `🟢 ${index + 1}. *${l.title || 'Untitled'}*\n   🔗 ${l.url}`;
+      if (includeNotes && l.notes) {
+        part += `\n   📝 _Note: ${l.notes}_`;
+      }
+      return part;
+    }).join('\n\n');
+
+    const finalMessage = `📚 *Read Later List*\n\n${text}\n\nShared via ReadLater App`;
+
+    try {
+      await RNShare.share({
+        message: finalMessage,
+      });
+      setSelectedIds(new Set());
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const openNoteEditor = (id: string) => {
+    const link = links.find(l => l.id === id);
+    if (link) {
+      setEditingNoteId(id);
+      setNoteText(link.notes || '');
+    }
+  };
+
+  const saveNote = async () => {
+    if (editingNoteId) {
+      await updateLinkNotes(editingNoteId, noteText);
+      setEditingNoteId(null);
+      fetchLinks();
+    }
+  };
+
+  const sortOptions: SortOption<'created_at' | 'last_clicked_at' | 'title'>[] = [
+    { label: 'Date Added', value: 'created_at', icon: 'calendar' },
+    { label: 'Recently Clicked', value: 'last_clicked_at', icon: 'clock' },
+    { label: 'Title', value: 'title', icon: 'textformat' },
+  ];
+
   const hasActiveFilter = searchQuery.startsWith('tag:') || searchQuery.startsWith('domain:');
 
   return (
@@ -106,7 +173,7 @@ export default function HomeScreen() {
           <IconSymbol name="house.fill" size={18} color={theme.icon} style={{ marginLeft: 10 }} />
           <TextInput
             style={[styles.searchInput, { color: theme.text }]}
-            placeholder="Search links, tag: or domain:"
+            placeholder="Search, tag: domain: or system:"
             placeholderTextColor={theme.textSecondary}
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -125,6 +192,9 @@ export default function HomeScreen() {
             </TouchableOpacity>
           )}
         </View>
+        <TouchableOpacity onPress={() => setIsSortMenuVisible(true)} hitSlop={8} style={styles.toggleBtn}>
+          <IconSymbol name="arrow.up.arrow.down" size={20} color={theme.icon} />
+        </TouchableOpacity>
         <TouchableOpacity onPress={() => setCompact(!compact)} hitSlop={8} style={styles.toggleBtn}>
           <IconSymbol name={compact ? "square.grid.2x2" : "list.bullet"} size={22} color={theme.icon} />
         </TouchableOpacity>
@@ -133,10 +203,38 @@ export default function HomeScreen() {
         </TouchableOpacity>
       </View>
 
+      {selectionMode && (
+        <View style={[styles.selectionBar, { backgroundColor: theme.accent }]}>
+          <TouchableOpacity onPress={() => setSelectedIds(new Set())} style={styles.selectionBarBtn}>
+            <IconSymbol name="xmark" size={20} color="#fff" />
+          </TouchableOpacity>
+          <Text style={styles.selectionCount}>{selectedIds.size} selected</Text>
+          <View style={{ flexDirection: 'row', gap: 16 }}>
+            <TouchableOpacity onPress={() => handleShare(false)} style={styles.selectionBarBtn}>
+              <IconSymbol name="square.and.arrow.up" size={20} color="#fff" />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => {
+              Alert.alert('Include Notes?', 'Do you want to include notes in the shared text?', [
+                { text: 'No', onPress: () => handleShare(false) },
+                { text: 'Yes', onPress: () => handleShare(true) },
+              ]);
+            }} style={styles.selectionBarBtn}>
+              <IconSymbol name="doc.text" size={20} color="#fff" />
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+
       {hasActiveFilter && (
         <View style={[styles.filterBar, { backgroundColor: theme.inputBackground }]}>
           <Text style={[styles.filterText, { color: theme.text }]}>
-            {searchQuery.startsWith('tag:') ? `🏷️ ${searchQuery.substring(4)}` : `🌐 ${searchQuery.substring(7)}`}
+            {(() => {
+              const colonIndex = searchQuery.indexOf(':');
+              const type = searchQuery.substring(0, colonIndex);
+              const name = searchQuery.substring(colonIndex + 1);
+              const icons: Record<string, string> = { 'tag': '🏷️', 'domain': '🌐', 'system': '⚙️' };
+              return `${icons[type] || '🔍'} ${name}`;
+            })()}
           </Text>
           <TouchableOpacity
             onPress={() => {
@@ -157,12 +255,21 @@ export default function HomeScreen() {
           <LinkCard 
             link={item} 
             tags={item.tags}
+            systemEntities={item.systemEntities}
             compact={compact}
+            selected={selectedIds.has(item.id)}
+            selectionMode={selectionMode}
             onPress={(id) => router.push({ pathname: '/edit' as any, params: { id } })}
             onDelete={handleDelete}
+            onLongPress={handleLongPress}
+            onNotePress={openNoteEditor}
             onTagPress={(tag) => {
               setSearchQuery(`tag:${tag}`);
               router.setParams({ tag, domain: undefined });
+            }}
+            onSystemTagPress={(name) => {
+              setSearchQuery(`system:${name}`);
+              router.setParams({ tag: undefined, domain: undefined });
             }}
             onDomainPress={handleDomainPress}
           />
@@ -178,6 +285,64 @@ export default function HomeScreen() {
           </View>
         }
       />
+
+      <SortMenu
+        visible={isSortMenuVisible}
+        onClose={() => setIsSortMenuVisible(false)}
+        options={sortOptions}
+        currentValue={sortBy}
+        onSelect={(val) => setSortBy(val)}
+      />
+
+      <Modal
+        visible={editingNoteId !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setEditingNoteId(null)}
+      >
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
+          style={styles.modalOverlay}
+        >
+          <TouchableWithoutFeedback onPress={() => setEditingNoteId(null)}>
+            <View style={styles.modalOverlayInner}>
+              <TouchableWithoutFeedback>
+                <View style={[styles.modalContent, { backgroundColor: theme.cardBackground }]}>
+                  <View style={styles.modalHeader}>
+                    <Text style={[styles.modalTitle, { color: theme.text }]}>Edit Note</Text>
+                    <TouchableOpacity onPress={() => setEditingNoteId(null)} hitSlop={10}>
+                      <IconSymbol name="xmark" size={20} color={theme.icon} />
+                    </TouchableOpacity>
+                  </View>
+                  <TextInput
+                    style={[styles.noteInput, { backgroundColor: theme.inputBackground, color: theme.text, borderColor: theme.border }]}
+                    placeholder="Add a note..."
+                    placeholderTextColor={theme.textSecondary}
+                    value={noteText}
+                    onChangeText={setNoteText}
+                    multiline
+                    autoFocus
+                  />
+                  <View style={styles.modalActions}>
+                    <TouchableOpacity 
+                      style={[styles.modalBtn, { backgroundColor: theme.border }]} 
+                      onPress={() => setEditingNoteId(null)}
+                    >
+                      <Text style={[styles.modalBtnText, { color: theme.text }]}>Cancel</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                      style={[styles.modalBtn, { backgroundColor: theme.accent }]} 
+                      onPress={saveNote}
+                    >
+                      <Text style={[styles.modalBtnText, { color: '#fff' }]}>Save Note</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </TouchableWithoutFeedback>
+            </View>
+          </TouchableWithoutFeedback>
+        </KeyboardAvoidingView>
+      </Modal>
     </View>
   );
 }
@@ -250,5 +415,74 @@ const styles = StyleSheet.create({
   },
   emptySubtext: {
     fontSize: 14,
+  },
+  selectionBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 16,
+  },
+  selectionCount: {
+    flex: 1,
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  selectionBarBtn: {
+    padding: 4,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalOverlayInner: {
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    paddingBottom: Platform.OS === 'ios' ? 40 : 20,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  noteInput: {
+    borderRadius: 12,
+    padding: 16,
+    height: 150,
+    fontSize: 16,
+    textAlignVertical: 'top',
+    marginBottom: 20,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  modalBtn: {
+    flex: 1,
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+  },
+  modalBtnText: {
+    fontSize: 16,
+    fontWeight: '600',
   },
 });

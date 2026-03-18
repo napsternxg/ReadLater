@@ -4,7 +4,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Image } from 'expo-image';
 import { fetchLinkMetadata } from '../utils/scraper';
 import { getDb } from '../db';
-import { addTagToLink, Link as DbLink, removeTagFromLink, getTagsForLink, getAllTagNames } from '../db/queries';
+import { addEntityToLink, Link as DbLink, removeEntityFromLink, getTagsForLink, getAllTagNames, updateLink } from '../db/queries';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Colors } from '@/constants/theme';
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -19,7 +19,9 @@ export default function EditLinkScreen() {
   const [title, setTitle] = useState('');
   const [imageUrl, setImageUrl] = useState('');
   const [domain, setDomain] = useState('');
-  const [tagsInput, setTagsInput] = useState('');
+  const [tags, setTags] = useState<string[]>([]);
+  const [tagInput, setTagInput] = useState('');
+  const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
   const [allTags, setAllTags] = useState<string[]>([]);
@@ -40,9 +42,10 @@ export default function EditLinkScreen() {
           setTitle(link.title || '');
           setImageUrl(link.image_url || '');
           setDomain(link.domain || '');
+          setNotes(link.notes || '');
           
           const tags = await getTagsForLink(id);
-          setTagsInput(tags.join(', '));
+          setTags(tags);
         }
       } catch (e) {
         console.error(e);
@@ -70,20 +73,33 @@ export default function EditLinkScreen() {
     if (!url || !id) return;
     
     try {
+      const link: DbLink = {
+        id,
+        url,
+        title: title || url,
+        image_url: imageUrl,
+        domain,
+        notes: notes.trim() || null,
+        last_clicked_at: null,
+        created_at: 0 // Will be overwritten below
+      };
+      
       const db = await getDb();
-      await db.runAsync(
-        'UPDATE links SET url = ?, title = ?, image_url = ?, domain = ? WHERE id = ?',
-        [url, title || url, imageUrl, domain, id]
-      );
+      const dbLink = await db.getFirstAsync<DbLink>('SELECT created_at, last_clicked_at FROM links WHERE id = ?', [id]);
+      if (dbLink) {
+        link.created_at = dbLink.created_at;
+        link.last_clicked_at = dbLink.last_clicked_at;
+      }
+
+      await updateLink(link);
       
       const existingTags = await getTagsForLink(id);
       for (const t of existingTags) {
-        await removeTagFromLink(id, t);
+        await removeEntityFromLink(id, 'tag', t);
       }
 
-      const inputTags = tagsInput.split(',').map(t => t.trim()).filter(Boolean);
-      for (const t of inputTags) {
-         await addTagToLink(id, t);
+      for (const t of tags) {
+         await addEntityToLink(id, 'tag', t);
       }
       
       router.back();
@@ -93,24 +109,27 @@ export default function EditLinkScreen() {
     }
   };
 
-  const getCurrentPartialTag = () => {
-    const parts = tagsInput.split(',');
-    return parts[parts.length - 1]?.trim() || '';
+  const handleAddTag = (tag: string) => {
+    const trimmed = tag.trim().toLowerCase();
+    if (trimmed && !tags.includes(trimmed)) {
+      setTags([...tags, trimmed]);
+    }
+    setTagInput('');
+    setShowSuggestions(false);
+  };
+
+  const handleRemoveTag = (index: number) => {
+    setTags(tags.filter((_, i) => i !== index));
   };
 
   const filteredSuggestions = (() => {
-    const partial = getCurrentPartialTag().toLowerCase();
-    if (!partial || partial.length < 1) return [];
-    const existingTags = tagsInput.split(',').map(t => t.trim().toLowerCase()).filter(Boolean);
-    return allTags.filter(t => t.toLowerCase().includes(partial) && !existingTags.includes(t.toLowerCase())).slice(0, 5);
+    const partial = tagInput.toLowerCase();
+    if (!partial) return [];
+    return allTags.filter(t => t.toLowerCase().includes(partial) && !tags.includes(t.toLowerCase())).slice(0, 5);
   })();
 
   const handleSelectTag = (tag: string) => {
-    const parts = tagsInput.split(',');
-    parts.pop();
-    const prefix = parts.length > 0 ? parts.join(', ') + ', ' : '';
-    setTagsInput(prefix + tag + ', ');
-    setShowSuggestions(false);
+    handleAddTag(tag);
   };
 
   const faviconUrl = domain ? `https://www.google.com/s2/favicons?domain=${domain}&sz=64` : null;
@@ -171,19 +190,34 @@ export default function EditLinkScreen() {
         />
 
         <Text style={[styles.label, { color: theme.textSecondary }]}>Tags</Text>
-        <TextInput
-          style={[styles.input, { backgroundColor: theme.inputBackground, color: theme.text, borderColor: theme.border }]}
-          placeholder="e.g. readlater, tech, react"
-          placeholderTextColor={theme.textSecondary}
-          value={tagsInput}
-          onChangeText={(text) => {
-            setTagsInput(text);
-            setShowSuggestions(true);
-          }}
-          onFocus={() => setShowSuggestions(true)}
-          onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-          autoCapitalize="none"
-        />
+        <View style={[styles.tagsContainer, { backgroundColor: theme.inputBackground, borderColor: theme.border }]}>
+          {tags.map((tag, index) => (
+            <View key={index} style={[styles.tagPill, { backgroundColor: theme.accent }]}>
+              <Text style={styles.tagPillText}>#{tag}</Text>
+              <TouchableOpacity onPress={() => handleRemoveTag(index)} hitSlop={8}>
+                <IconSymbol name="xmark" size={14} color="#fff" />
+              </TouchableOpacity>
+            </View>
+          ))}
+          <TextInput
+            style={[styles.tagInput, { color: theme.text }]}
+            placeholder={tags.length === 0 ? "e.g. tech, react" : ""}
+            placeholderTextColor={theme.textSecondary}
+            value={tagInput}
+            onChangeText={(text) => {
+              if (text.endsWith(',') || text.endsWith(' ')) {
+                const tag = text.slice(0, -1).trim();
+                if (tag) handleAddTag(tag);
+              } else {
+                setTagInput(text);
+                setShowSuggestions(true);
+              }
+            }}
+            onFocus={() => setShowSuggestions(true)}
+            onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+            autoCapitalize="none"
+          />
+        </View>
         {showSuggestions && filteredSuggestions.length > 0 && (
           <View style={[styles.suggestionsContainer, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>
             {filteredSuggestions.map((tag) => (
@@ -193,6 +227,17 @@ export default function EditLinkScreen() {
             ))}
           </View>
         )}
+
+        <Text style={[styles.label, { color: theme.textSecondary }]}>Notes</Text>
+        <TextInput
+          style={[styles.input, styles.textArea, { backgroundColor: theme.inputBackground, color: theme.text, borderColor: theme.border }]}
+          placeholder="Add some notes about this link..."
+          placeholderTextColor={theme.textSecondary}
+          value={notes}
+          onChangeText={setNotes}
+          multiline
+          numberOfLines={4}
+        />
 
         <TouchableOpacity style={[styles.saveButton, { backgroundColor: theme.accent }]} onPress={handleUpdate}>
           <Text style={styles.saveButtonText}>Update Link</Text>
@@ -235,6 +280,10 @@ const styles = StyleSheet.create({
     fontSize: 15,
     borderWidth: StyleSheet.hairlineWidth,
   },
+  textArea: {
+    height: 100,
+    textAlignVertical: 'top',
+  },
   fetchButton: {
     width: 44,
     justifyContent: 'center',
@@ -275,6 +324,36 @@ const styles = StyleSheet.create({
   },
   suggestionText: {
     fontSize: 14,
+  },
+  tagsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    padding: 8,
+    borderRadius: 10,
+    borderWidth: StyleSheet.hairlineWidth,
+    gap: 8,
+    alignItems: 'center',
+    minHeight: 44,
+  },
+  tagPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 15,
+    gap: 4,
+  },
+  tagPillText: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  tagInput: {
+    flex: 1,
+    minWidth: 100,
+    height: 30,
+    fontSize: 15,
+    padding: 0,
   },
   saveButton: {
     padding: 15,

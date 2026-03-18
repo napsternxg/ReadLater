@@ -3,7 +3,7 @@ import { StyleSheet, View, Text, TextInput, TouchableOpacity, ScrollView, Activi
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Image } from 'expo-image';
 import { fetchLinkMetadata } from '../utils/scraper';
-import { insertLink, addTagToLink, Link as DbLink, getAllTagNames, getLinkByUrl } from '../db/queries';
+import { insertLink, addEntityToLink, Link as DbLink, getAllTagNames, getLinkByUrl } from '../db/queries';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Colors } from '@/constants/theme';
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -18,7 +18,9 @@ export default function AddLinkScreen() {
   const [title, setTitle] = useState('');
   const [imageUrl, setImageUrl] = useState('');
   const [domain, setDomain] = useState('');
-  const [tagsInput, setTagsInput] = useState('');
+  const [tags, setTags] = useState<string[]>([]);
+  const [tagInput, setTagInput] = useState('');
+  const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(false);
   const [allTags, setAllTags] = useState<string[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -34,6 +36,19 @@ export default function AddLinkScreen() {
       handleFetchPreviewDirectly(paramUrl);
     }
   }, [paramUrl]);
+
+  useEffect(() => {
+    if (!url || url.length < 4) return;
+    
+    const debounceTimer = setTimeout(() => {
+      // Don't fetch if already loading or if the title/imageUrl are already set (could be from handleFetchPreviewDirectly)
+      if (!loading) {
+        handleFetchPreview();
+      }
+    }, 2000);
+
+    return () => clearTimeout(debounceTimer);
+  }, [url]);
 
   const handleFetchPreviewDirectly = async (targetUrl: string) => {
     setLoading(true);
@@ -89,40 +104,42 @@ export default function AddLinkScreen() {
       title: title || url,
       image_url: imageUrl,
       domain: finalDomain,
+      notes: notes.trim() || null,
+      last_clicked_at: null,
       created_at: ts,
     };
 
     await insertLink(link);
     
-    if (tagsInput.trim()) {
-      const tags = tagsInput.split(',').map(t => t.trim()).filter(Boolean);
-      for (const t of tags) {
-        await addTagToLink(id, t);
-      }
+    // Add tags
+    for (const t of tags) {
+      await addEntityToLink(id, 'tag', t);
     }
     
     router.back();
   };
 
-  // Get current partial tag for autocomplete
-  const getCurrentPartialTag = () => {
-    const parts = tagsInput.split(',');
-    return parts[parts.length - 1]?.trim() || '';
+  const handleAddTag = (tag: string) => {
+    const trimmed = tag.trim().toLowerCase();
+    if (trimmed && !tags.includes(trimmed)) {
+      setTags([...tags, trimmed]);
+    }
+    setTagInput('');
+    setShowSuggestions(false);
+  };
+
+  const handleRemoveTag = (index: number) => {
+    setTags(tags.filter((_, i) => i !== index));
   };
 
   const filteredSuggestions = (() => {
-    const partial = getCurrentPartialTag().toLowerCase();
-    if (!partial || partial.length < 1) return [];
-    const existingTags = tagsInput.split(',').map(t => t.trim().toLowerCase()).filter(Boolean);
-    return allTags.filter(t => t.toLowerCase().includes(partial) && !existingTags.includes(t.toLowerCase())).slice(0, 5);
+    const partial = tagInput.toLowerCase();
+    if (!partial) return [];
+    return allTags.filter(t => t.toLowerCase().includes(partial) && !tags.includes(t.toLowerCase())).slice(0, 5);
   })();
 
   const handleSelectTag = (tag: string) => {
-    const parts = tagsInput.split(',');
-    parts.pop();
-    const prefix = parts.length > 0 ? parts.join(', ') + ', ' : '';
-    setTagsInput(prefix + tag + ', ');
-    setShowSuggestions(false);
+    handleAddTag(tag);
   };
 
   const faviconUrl = domain ? `https://www.google.com/s2/favicons?domain=${domain}&sz=64` : null;
@@ -150,7 +167,7 @@ export default function AddLinkScreen() {
               onChangeText={setUrl}
               autoCapitalize="none"
               keyboardType="url"
-              onBlur={handleFetchPreview}
+              onBlur={() => {}}
             />
             {url.length > 0 && (
               <TouchableOpacity onPress={() => setUrl('')} hitSlop={8} style={{ marginRight: 8 }}>
@@ -183,21 +200,35 @@ export default function AddLinkScreen() {
           onChangeText={setTitle}
         />
 
-        {/* Tags */}
         <Text style={[styles.label, { color: theme.textSecondary }]}>Tags</Text>
-        <TextInput
-          style={[styles.input, { backgroundColor: theme.inputBackground, color: theme.text, borderColor: theme.border }]}
-          placeholder="e.g. readlater, tech, react"
-          placeholderTextColor={theme.textSecondary}
-          value={tagsInput}
-          onChangeText={(text) => {
-            setTagsInput(text);
-            setShowSuggestions(true);
-          }}
-          onFocus={() => setShowSuggestions(true)}
-          onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-          autoCapitalize="none"
-        />
+        <View style={[styles.tagsContainer, { backgroundColor: theme.inputBackground, borderColor: theme.border }]}>
+          {tags.map((tag, index) => (
+            <View key={index} style={[styles.tagPill, { backgroundColor: theme.accent }]}>
+              <Text style={styles.tagPillText}>#{tag}</Text>
+              <TouchableOpacity onPress={() => handleRemoveTag(index)} hitSlop={8}>
+                <IconSymbol name="xmark" size={14} color="#fff" />
+              </TouchableOpacity>
+            </View>
+          ))}
+          <TextInput
+            style={[styles.tagInput, { color: theme.text }]}
+            placeholder={tags.length === 0 ? "e.g. tech, react" : ""}
+            placeholderTextColor={theme.textSecondary}
+            value={tagInput}
+            onChangeText={(text) => {
+              if (text.endsWith(',') || text.endsWith(' ')) {
+                const tag = text.slice(0, -1).trim();
+                if (tag) handleAddTag(tag);
+              } else {
+                setTagInput(text);
+                setShowSuggestions(true);
+              }
+            }}
+            onFocus={() => setShowSuggestions(true)}
+            onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+            autoCapitalize="none"
+          />
+        </View>
         {showSuggestions && filteredSuggestions.length > 0 && (
           <View style={[styles.suggestionsContainer, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>
             {filteredSuggestions.map((tag) => (
@@ -207,6 +238,18 @@ export default function AddLinkScreen() {
             ))}
           </View>
         )}
+
+        {/* Notes */}
+        <Text style={[styles.label, { color: theme.textSecondary }]}>Notes</Text>
+        <TextInput
+          style={[styles.input, styles.textArea, { backgroundColor: theme.inputBackground, color: theme.text, borderColor: theme.border }]}
+          placeholder="Add some notes about this link..."
+          placeholderTextColor={theme.textSecondary}
+          value={notes}
+          onChangeText={setNotes}
+          multiline
+          numberOfLines={4}
+        />
 
         {/* Save Button */}
         <TouchableOpacity style={[styles.saveButton, { backgroundColor: theme.accent }]} onPress={handleSave}>
@@ -244,6 +287,10 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     fontSize: 15,
     borderWidth: StyleSheet.hairlineWidth,
+  },
+  textArea: {
+    height: 100,
+    textAlignVertical: 'top',
   },
   inputContainer: {
     flex: 1,
@@ -299,6 +346,36 @@ const styles = StyleSheet.create({
   },
   suggestionText: {
     fontSize: 14,
+  },
+  tagsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    padding: 8,
+    borderRadius: 10,
+    borderWidth: StyleSheet.hairlineWidth,
+    gap: 8,
+    alignItems: 'center',
+    minHeight: 44,
+  },
+  tagPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 15,
+    gap: 4,
+  },
+  tagPillText: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  tagInput: {
+    flex: 1,
+    minWidth: 100,
+    height: 30,
+    fontSize: 15,
+    padding: 0,
   },
   saveButton: {
     padding: 15,
