@@ -77,22 +77,18 @@ const ActionButtons = ({ link, isCollection, theme, compact, onNotePress, handle
   if (compact) {
     return (
       <View style={styles.compactActions}>
-        <TouchableOpacity onPress={() => onNotePress?.(link.id)} hitSlop={8} style={styles.compactActionBtn}>
-          <IconSymbol name="pencil.and.outline" size={14} color={link.notes ? theme.accent : theme.icon} />
-          <Text style={[styles.actionLabel, { color: link.notes ? theme.accent : theme.textSecondary }]}>Notes</Text>
+        <TouchableOpacity onPress={() => onNotePress?.(link.id)} hitSlop={8} style={styles.iconBtn}>
+          <IconSymbol name="pencil.and.outline" size={16} color={link.notes ? theme.accent : theme.icon} />
         </TouchableOpacity>
-        <TouchableOpacity onPress={handleCopyLink} hitSlop={8} style={styles.compactActionBtn}>
-          <IconSymbol name="doc.on.doc" size={14} color={theme.icon} />
-          <Text style={[styles.actionLabel, { color: theme.textSecondary }]}>Copy</Text>
+        <TouchableOpacity onPress={handleCopyLink} hitSlop={8} style={styles.iconBtn}>
+          <IconSymbol name="doc.on.doc" size={16} color={theme.icon} />
         </TouchableOpacity>
-        <TouchableOpacity onPress={handleOpenLink} hitSlop={8} style={styles.compactActionBtn}>
-          <IconSymbol name={isCollection ? "folder" : "square.and.arrow.up"} size={14} color={theme.accent} />
-          <Text style={[styles.actionLabel, { color: theme.accent }]}>Open</Text>
+        <TouchableOpacity onPress={handleOpenLink} hitSlop={8} style={styles.iconBtn}>
+          <IconSymbol name={isCollection ? "folder" : "square.and.arrow.up"} size={16} color={theme.accent} />
         </TouchableOpacity>
         {onDelete && (
-          <TouchableOpacity onPress={() => onDelete(link.id)} hitSlop={8} style={styles.compactActionBtn}>
-            <IconSymbol name="trash" size={14} color={theme.danger} />
-            <Text style={[styles.actionLabel, { color: theme.danger }]}>Delete</Text>
+          <TouchableOpacity onPress={() => onDelete(link.id)} hitSlop={8} style={styles.iconBtn}>
+            <IconSymbol name="trash" size={16} color={theme.danger} />
           </TouchableOpacity>
         )}
       </View>
@@ -402,11 +398,9 @@ const styles = StyleSheet.create({
   },
   compactActions: {
     flexDirection: 'row',
-    gap: 8,
+    justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 4,
-    justifyContent: 'flex-start',
-    flexWrap: 'wrap',
+    marginTop: 6,
   },
   compactActionBtn: {
     flexDirection: 'row',
